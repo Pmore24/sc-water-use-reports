@@ -69,7 +69,7 @@ wu_monit_dat2 <- wu_monit_dat %>%
                                    total/366, total/365)) %>%
   dplyr::mutate(Basin_GIS = ifelse(sourceid == "20WS002G16", "Catawba", Basin_GIS),
                 Basin = ifelse(sourceid == "20WS002G16", "Catawba", Basin)) %>%
-  scwaterwithdrawaldata::parse_ID_cols("sourceid") %>%
+  parse_ID_cols("sourceid") %>%
   janitor::clean_names() 
 
 wu_monint_WD_ID <- wu_monit_dat2 %>%
