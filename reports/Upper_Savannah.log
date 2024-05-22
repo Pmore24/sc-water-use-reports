@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.28)  22 MAY 2024 14:42
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.28)  22 MAY 2024 18:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -608,62 +608,62 @@ Overfull \hbox (12.5835pt too wide) in paragraph at lines 273--291
  []
 
 [5]
-Overfull \hbox (15.98387pt too wide) in paragraph at lines 336--351
+Overfull \hbox (15.98387pt too wide) in paragraph at lines 335--350
  [][] 
  []
 
 <Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf, id=111, 867.24pt x 650.43pt>
 File: Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf  used on input line 355.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf  used on input line 354.
 (pdftex.def)             Requested size: 469.75827pt x 352.31868pt.
 [6] [7 <./Upper_Savannah_files/figure-latex/combine-bar-plots-nopower-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf, id=129, 722.7pt x 794.97pt>
 File: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf  used on input line 413.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf  used on input line 412.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [8]
 <Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf, id=142, 722.7pt x 794.97pt>
 File: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf  used on input line 427.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf  used on input line 426.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [9 <./Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_noPH-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf, id=155, 722.7pt x 289.08pt>
 File: Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf  used on input line 440.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf  used on input line 439.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
 [10 <./Upper_Savannah_files/figure-latex/trend-bar-plot-all_cat_nopower-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf, id=168, 722.7pt x 794.97pt>
 File: Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf  used on input line 453.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf  used on input line 452.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [11 <./Upper_Savannah_files/figure-latex/trend-TH_bar-plot-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf, id=180, 722.7pt x 289.08pt>
 File: Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf  used on input line 466.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf  used on input line 465.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
 [12 <./Upper_Savannah_files/figure-latex/trend-WS_bar-plot-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf, id=193, 722.7pt x 794.97pt>
 File: Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf  used on input line 479.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf  used on input line 478.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [13 <./Upper_Savannah_files/figure-latex/trend-IN_bar-plot-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf, id=206, 722.7pt x 794.97pt>
 File: Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf  used on input line 492.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf  used on input line 491.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [14 <./Upper_Savannah_files/figure-latex/trend-Ag_bar-plot-1.pdf>]
 <Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf, id=219, 722.7pt x 289.08pt>
 File: Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf Graphic file (type pdf)
 <use Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf>
-Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf  used on input line 505.
+Package pdftex.def Info: Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf  used on input line 504.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
 [15 <./Upper_Savannah_files/figure-latex/trend-GC_bar-plot-1.pdf>] [16 <./Upper_Savannah_files/figure-latex/trend-MI_bar-plot-1.pdf>] [17] (./Upper_Savannah.aux)
 Package rerunfilecheck Info: File `Upper_Savannah.out' has not changed.
@@ -678,7 +678,7 @@ Here is how much of TeX's memory you used:
  14 hyphenation exceptions out of 8191
  60i,12n,63p,630b,424s stack positions out of 5000i,500n,10000p,200000b,80000s
 {c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}<c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb>
-Output written on Upper_Savannah.pdf (17 pages, 2124193 bytes).
+Output written on Upper_Savannah.pdf (17 pages, 2124246 bytes).
 PDF statistics:
  303 PDF objects out of 1000 (max. 8388607)
  246 compressed objects within 3 object streams
