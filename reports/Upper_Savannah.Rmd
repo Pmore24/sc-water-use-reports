@@ -24,7 +24,6 @@ knitr::opts_chunk$set(echo = FALSE,
 library(here)
 library(dplyr)
 library(knitr)
-library(scutils)
 library(rmarkdown)
 library(writexl)
 library(tidyverse)
