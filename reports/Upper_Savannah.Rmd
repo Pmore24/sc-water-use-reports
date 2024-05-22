@@ -6,6 +6,7 @@ output:
   #word_document: default
   #html_document: default
   pdf_document: default
+  keep_md: true
 header-includes:
 - \usepackage{caption}
 - \usepackage{subfig}
@@ -285,7 +286,7 @@ PeeDee_category_pie_no_PH <- PeeDee_category_pie_no_PH +
 ggsave(filename = file.path("D:/PeeDee_plots/2021", "PD_category_pie_no_PH.png"), width = 22, height = 22, dpi = 300, units = "in", device = 'png')
 ```
 
-```{r combine-bar-plots-noPH, fig.cap= paste0('\\textbf{Figure 2.} ',y,' Water withdrawals excluding Hydroelectric Power in the ',req_basin, ' basin by category and source. Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=10}
+```{r combine-bar-plots-noPH, fig.cap= paste0('\\textbf{Figure 2.} ',y,' Water withdrawals excluding Hydroelectric Power in the ',req_basin, ' basin by category and source. Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=10, fig.path='figures/', dev='png'}
 
 sw_no_ph_bar <- no_PH_cat_summary2 %>%
   dplyr::select(category, Surface_water, Percentage_SW) %>%
@@ -419,7 +420,7 @@ kableExtra::kbl(no_power_cat_summary2,
   kableExtra::kable_styling(latex_options = ("hold_position"))
 ```
 
-```{r combine-bar-plots-nopower, fig.cap= paste0('\\textbf{Figure 3.} ',y, ' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', req_basin, ' basin by category and source, Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=9}
+```{r combine-bar-plots-nopower, fig.cap= paste0('\\textbf{Figure 3.} ',y, ' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', req_basin, ' basin by category and source, Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=9,fig.path='figures/', dev='png'}
 
 sw_no_power_bar <- no_power_cat_summary2 %>%
   dplyr::select(category, Surface_water, Percentage_SW) %>%
@@ -474,7 +475,7 @@ Owing to the above limitations, caution is warranted when interpreting trends in
 
 ## A.2 Water Withdrawal for All Categories Combined, Excluding Hydroelectric Power
 
-```{r trend-bar-plot-all_cat_noPH,fig.cap= paste0('\\textbf{Figure A1.} Annual water withdrawals excluding Hydroelectric Power in the ',req_basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+```{r trend-bar-plot-all_cat_noPH,fig.cap= paste0('\\textbf{Figure A1.} Annual water withdrawals excluding Hydroelectric Power in the ',req_basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11, fig.path='figures/', dev='png'}
 
 basin_total_wu_no_ph_summary_2011_2022 <- trend_plot_summary(water_use_data = wu_monit_dat2, trend_year=trend_year1, which_basin=req_basin, req_category = c("Thermoelectric", "Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture")) %>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -498,7 +499,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 ```
 ## A.3 Water Withdrawal for All Categories Combined, Excluding Hydroelectric and Thermoelectric Power
 
-```{r trend-bar-plot-all_cat_nopower,fig.cap= paste0('\\textbf{Figure A2.} Annual water withdrawals excluding Hydroelectric and Thermoelectric Power in the ',req_basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+```{r trend-bar-plot-all_cat_nopower,fig.cap= paste0('\\textbf{Figure A2.} Annual water withdrawals excluding Hydroelectric and Thermoelectric Power in the ',req_basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11, fig.path='figures/', dev='png'}
 
 basin_total_wu_no_power_summary_2011_2022 <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin,req_category = c("Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture")) %>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -522,7 +523,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 ```
 ## A.4 Water Withdrawal for Thermoelectric Power
 
-```{r trend-TH_bar-plot,fig.cap= paste0('\\textbf{Figure A3.} Annual surface water (SW) withdrawals in the ',req_basin, ' basin for Thermoelectric Power.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4}
+```{r trend-TH_bar-plot,fig.cap= paste0('\\textbf{Figure A3.} Annual surface water (SW) withdrawals in the ',req_basin, ' basin for Thermoelectric Power.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4, fig.path='figures/', dev='png'}
 
 basin_TH_summary_2011_2022  <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin,req_category = "Thermoelectric") %>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -537,7 +538,7 @@ basin_TH_SW_plot_2011_2022
 ```
 ## A.5 Water Withdrawal for Water Supply
 
-```{r trend-WS_bar-plot,fig.cap= paste0('\\textbf{Figure A4.} Annual water withdrawals in the ',req_basin, ' basin for Water Supply by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+```{r trend-WS_bar-plot,fig.cap= paste0('\\textbf{Figure A4.} Annual water withdrawals in the ',req_basin, ' basin for Water Supply by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11, fig.path='figures/', dev='png'}
 
 basin_WS_summary_2011_2022  <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin ,req_category = "Water Supply") %>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -561,7 +562,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 
 ## A.6 Water Withdrawal for Industry
 
-```{r trend-IN_bar-plot,fig.cap= paste0('\\textbf{Figure A5.} Annual surface water withdrawals in the ',req_basin, ' basin for Industry.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4}
+```{r trend-IN_bar-plot,fig.cap= paste0('\\textbf{Figure A5.} Annual surface water withdrawals in the ',req_basin, ' basin for Industry.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4, fig.path='figures/', dev='png'}
 
 basin_IN_summary_2011_2022  <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin, req_category = "Industry") %>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -576,7 +577,7 @@ basin_IN_SW_plot_2011_2022
 
 ## A.7 Water Withdrawal for Agriculture
 
-```{r trend-Ag_bar-plot,fig.cap= paste0('\\textbf{Figure A6.} Annual water withdrawals in the ',req_basin, ' basin for Agriculture by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+```{r trend-Ag_bar-plot,fig.cap= paste0('\\textbf{Figure A6.} Annual water withdrawals in the ',req_basin, ' basin for Agriculture by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11, fig.path='figures/', dev='png'}
 
 basin_Ag_summary_2011_2022  <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin ,req_category = "Agriculture")%>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L)) %>%
@@ -601,7 +602,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 
 ## A.8 Water Withdrawal for Golf Course
 
-```{r trend-GC_bar-plot,fig.cap= paste0('\\textbf{Figure A7.} Annual water withdrawals in the ',req_basin, ' basin for Golf Course by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+```{r trend-GC_bar-plot,fig.cap= paste0('\\textbf{Figure A7.} Annual water withdrawals in the ',req_basin, ' basin for Golf Course by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11, fig.path='figures/', dev='png'}
 
 basin_GC_summary_2011_2022  <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin ,req_category = "Golf Course")%>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
@@ -625,7 +626,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 
 ## A.9 Water Withdrawal for Mining
 
-```{r trend-MI_bar-plot,fig.cap= paste0('\\textbf{Figure A8.} Annual surface water (SW) withdrawals in the ',req_basin, ' basin for Mining.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4}
+```{r trend-MI_bar-plot,fig.cap= paste0('\\textbf{Figure A8.} Annual surface water (SW) withdrawals in the ',req_basin, ' basin for Mining.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4, fig.path='figures/', dev='png'}
 
 basin_MI_summary_2011_2022 <- trend_plot_summary(water_use_data = wu_monit_dat2,trend_year=trend_year1, which_basin=req_basin, req_category = "Mining")%>%
   dplyr::mutate(year = lubridate::ymd(year, truncated = 2L)) %>% 
