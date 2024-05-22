@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>South Carolina Geological Survey</origin>
+				<pubdate>2005</pubdate>
+				<title Sync="TRUE">fall_line_500k</title>
+				<geoform Sync="TRUE">vector digital data</geoform>
+				<serinfo>
+					<sername>none</sername>
+					<issue></issue>
+				</serinfo>
+				<pubinfo>
+					<pubplace>South Carolina</pubplace>
+					<publish>South Carolina Geological Survey</publish>
+				</pubinfo>
+				<onlink></onlink>
+				<ftname Sync="TRUE">fall_line_500k</ftname></citeinfo>
+		</citation>
+		<descript>
+			<abstract>This data was derived from geologic data contained in USGS Open-File Report 01-298. This data contains information about the geographic location of the fall line in SC. The fall line is the separation of the Piedmont and Coastal Plain regions.</abstract>
+			<purpose>To delineate the fall line in SC at a scale of 1:500,000</purpose>
+			<langdata Sync="TRUE">en</langdata></descript>
+		<timeperd>
+			<timeinfo>
+				<sngdate>
+					<caldate>2005</caldate>
+					<time>unknown</time>
+				</sngdate>
+			</timeinfo>
+			<current>publication date</current>
+		</timeperd>
+		<status>
+			<progress>Complete</progress>
+			<update>Irregular</update>
+		</status>
+		<spdom>
+			<bounding>
+				<westbc Sync="TRUE">-82.006411</westbc>
+				<eastbc Sync="TRUE">-79.905109</eastbc>
+				<northbc Sync="TRUE">34.813352</northbc>
+				<southbc Sync="TRUE">33.495031</southbc>
+			</bounding>
+			<lboundng><leftbc Sync="TRUE">407946.860156</leftbc><rightbc Sync="TRUE">600147.390918</rightbc><bottombc Sync="TRUE">3706495.548463</bottombc><topbc Sync="TRUE">3852147.828311</topbc></lboundng></spdom>
+		<keywords>
+			<theme>
+				<themekt>fall line</themekt>
+				<themekey>geology</themekey>
+				<themekey>South Carolina Geological Survey</themekey>
+				<themekey>geologic units</themekey>
+				<themekey>fall line</themekey></theme>
+			<place>
+				<placekt>South Carolina</placekt>
+				<placekey>SC</placekey>
+				<placekey>South Carolina</placekey>
+				<placekey>US</placekey>
+				<placekey>United States</placekey>
+				<placekey>southeast</placekey>
+			</place>
+		</keywords>
+		<accconst>none</accconst>
+		<useconst>The South Carolina Department of Natural Resources and South Carolina Geological Survey should be acknowledged as the data source in products derived from these data.  Not for use at scale greater than 1:500,000.</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>South Carolina Geological Survey</cntorg>
+					<cntper>C. Scott Howard</cntper>
+				</cntorgp>
+				<cntpos>Project Geologist</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>5 Geology Road</address>
+					<city>Columbia</city>
+					<state>South Carolina</state>
+					<postal>29212</postal>
+				</cntaddr>
+				<cntvoice>803.896.7712</cntvoice>
+				<cntfax>803.896.7695</cntfax>
+				<cntemail>howards@dnr.sc.gov</cntemail>
+			</cntinfo>
+		</ptcontac>
+		<native Sync="TRUE">Microsoft Windows XP Version 5.1 (Build 2600) Service Pack 2; ESRI ArcCatalog 9.1.0.722</native>
+		<natvform Sync="TRUE">Shapefile</natvform></idinfo>
+	<dataqual>
+		<attracc>
+			<attraccr>Attribution was inherited from source maps.</attraccr>
+		</attracc>
+		<logic>Spatial data is presented in the form of lines characterizing the fall line in the state. No guarantees are provided as to its accuracy.</logic>
+		<posacc>
+			<horizpa></horizpa>
+		</posacc>
+		<lineage>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Horton and Dicken</origin>
+						<pubdate>2001</pubdate>
+						<title>Preliminary Digital Geologic Map of the Appalachian Piedmont and Blue Ridge, South Carolina</title>
+						<serinfo>
+							<sername>Open-File Report</sername>
+							<issue>01-298</issue>
+						</serinfo>
+						<pubinfo>
+							<pubplace>Reston,VA</pubplace>
+							<publish>USGS</publish>
+						</pubinfo>
+					</citeinfo>
+				</srccite>
+				<srcscale>500,000</srcscale>
+				<typesrc>CD-ROM</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2001</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>publication date</srccurr>
+				</srctime>
+				<srccitea>01-298</srccitea>
+			</srcinfo>
+			<procstep>
+				<procdesc>The fall line was captured from the data contained in the USGS source data.</procdesc>
+				<procdate>2005</procdate>
+				<proccont>
+					<cntinfo>
+						<cntperp>
+							<cntper>Erin E. Hudson</cntper>
+							<cntorg>South Carolina Geological Survey</cntorg>
+						</cntperp>
+						<cntpos>GIS Technician/Cartographer</cntpos>
+						<cntaddr>
+							<addrtype>mailing and physical address</addrtype>
+							<address>5 Geology Road</address>
+							<city>Columbia</city>
+							<state>South Carolina</state>
+							<postal>29212</postal>
+						</cntaddr>
+						<cntvoice>803.896.7714</cntvoice>
+						<cntfax>803.896.7695</cntfax>
+						<cntemail>hudsone@dnr.sc.gov</cntemail>
+					</cntinfo>
+				</proccont>
+			</procstep>
+		</lineage>
+	</dataqual>
+	<spdoinfo>
+		<direct Sync="TRUE">Vector</direct>
+		<ptvctinf>
+			<sdtsterm Name="fall_line_500k">
+				<sdtstype Sync="TRUE">String</sdtstype>
+				<ptvctcnt Sync="TRUE">133</ptvctcnt>
+			</sdtsterm>
+			<esriterm Name="fall_line_500k"><efeatyp Sync="TRUE">Simple</efeatyp><efeageom Sync="TRUE">Polyline</efeageom><esritopo Sync="TRUE">FALSE</esritopo><efeacnt Sync="TRUE">133</efeacnt><spindex Sync="TRUE">FALSE</spindex><linrefer Sync="TRUE">FALSE</linrefer></esriterm></ptvctinf>
+	</spdoinfo>
+	<spref>
+		<horizsys>
+			<planar>
+				<planci>
+					<plance Sync="TRUE">coordinate pair</plance>
+					<coordrep>
+						<absres Sync="TRUE">0.000512</absres>
+						<ordres Sync="TRUE">0.000512</ordres>
+					</coordrep>
+					<plandu Sync="TRUE">meters</plandu>
+				</planci>
+				<gridsys><gridsysn Sync="TRUE">Universal Transverse Mercator</gridsysn><utm><utmzone Sync="TRUE">17</utmzone><transmer><sfctrmer Sync="TRUE">0.999600</sfctrmer><longcm Sync="TRUE">-81.000000</longcm><latprjo Sync="TRUE">0.000000</latprjo><feast Sync="TRUE">500000.000000</feast><fnorth Sync="TRUE">0.000000</fnorth></transmer></utm></gridsys></planar>
+			<geodetic>
+				<horizdn Sync="TRUE">North American Datum of 1927</horizdn>
+				<ellips Sync="TRUE">Clarke 1866</ellips>
+				<semiaxis Sync="TRUE">6378206.400000</semiaxis>
+				<denflat Sync="TRUE">294.978698</denflat>
+			</geodetic>
+			<cordsysn><geogcsn Sync="TRUE">GCS_North_American_1927</geogcsn><projcsn Sync="TRUE">NAD_1927_UTM_Zone_17N</projcsn></cordsysn></horizsys>
+		<vertdef>
+			<altsys>
+			</altsys>
+		</vertdef>
+	</spref>
+	<eainfo>
+		<detailed Name="fall_line_500k">
+			<enttyp>
+				<enttypl Sync="TRUE">fall_line_500k</enttypl>
+				<enttypt Sync="TRUE">Feature Class</enttypt><enttypc Sync="TRUE">133</enttypc></enttyp>
+			<attr><attrlabl Sync="TRUE">FID</attrlabl><attalias Sync="TRUE">FID</attalias><attrtype Sync="TRUE">OID</attrtype><attwidth Sync="TRUE">4</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale><attrdef Sync="TRUE">Internal feature number.</attrdef><attrdefs Sync="TRUE">ESRI</attrdefs><attrdomv><udom Sync="TRUE">Sequential unique whole numbers that are automatically generated.</udom></attrdomv></attr><attr><attrlabl Sync="TRUE">Shape</attrlabl><attalias Sync="TRUE">Shape</attalias><attrtype Sync="TRUE">Geometry</attrtype><attwidth Sync="TRUE">0</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale><attrdef Sync="TRUE">Feature geometry.</attrdef><attrdefs Sync="TRUE">ESRI</attrdefs><attrdomv><udom Sync="TRUE">Coordinates defining the features.</udom></attrdomv></attr><attr><attrlabl Sync="TRUE">Id</attrlabl><attalias Sync="TRUE">Id</attalias><attrtype Sync="TRUE">Number</attrtype><attwidth Sync="TRUE">6</attwidth></attr></detailed>
+	</eainfo>
+	<distinfo>
+		<distrib>
+			<cntinfo>
+				<cntperp>
+					<cntper>C. Scott Howard</cntper>
+					<cntorg>South Carolina Geological Survey</cntorg>
+				</cntperp>
+				<cntpos>Project Leader</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>5 Geology Road</address>
+					<city>Columbia</city>
+					<state>South Carolina</state>
+					<postal>29212</postal>
+				</cntaddr>
+				<cntvoice>803.896.7712</cntvoice>
+				<cntfax>803.896.7695</cntfax>
+				<cntemail>howards@dnr.sc.gov</cntemail>
+			</cntinfo>
+		</distrib>
+		<resdesc>fall_line_large</resdesc>
+		<distliab>The South Carolina Geological Survey does not assume liability; no warranty expressed or implied is made by the Agency regarding the utility of the data on any other system, nor shall the act of distribution constitute any such warranty.</distliab>
+		<stdorder>
+			<digform><digtinfo><transize Sync="TRUE">0.148</transize><dssize Sync="TRUE">0.148</dssize></digtinfo></digform></stdorder>
+	</distinfo>
+	<metainfo>
+		<metd Sync="TRUE">20060607</metd>
+		<metc>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>South Carolina Geological Survey</cntorg>
+					<cntper>Erin E. Hudson</cntper>
+				</cntorgp>
+				<cntpos>GIS Technician/Cartographer</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>5 Geology Road</address>
+					<city>Columbia</city>
+					<state>South Carolina</state>
+					<postal>29212</postal>
+				</cntaddr>
+				<cntvoice>803.896.7714</cntvoice>
+				<cntfax>803.896.7695</cntfax>
+				<cntemail>hudsone@dnr.sc.gov</cntemail>
+			</cntinfo>
+		</metc>
+		<metstdn Sync="TRUE">FGDC Content Standards for Digital Geospatial Metadata</metstdn>
+		<metstdv Sync="TRUE">FGDC-STD-001-1998</metstdv>
+		<mettc Sync="TRUE">local time</mettc>
+		<langmeta Sync="TRUE">en</langmeta><metextns><onlink Sync="TRUE">http://www.esri.com/metadata/esriprof80.html</onlink><metprof Sync="TRUE">ESRI Metadata Profile</metprof></metextns></metainfo>
+	<Esri><CreaDate>20060206</CreaDate><CreaTime>13424600</CreaTime><SyncOnce>FALSE</SyncOnce><SyncDate>20060607</SyncDate><SyncTime>16063500</SyncTime><ModDate>20060607</ModDate><ModTime>16063500</ModTime><MetaID>{E7575FB6-284D-470B-BAF4-B36B1A06BFD9}</MetaID></Esri><dataIdInfo><envirDesc Sync="TRUE">Microsoft Windows XP Version 5.1 (Build 2600) Service Pack 2; ESRI ArcCatalog 9.1.0.722</envirDesc><dataLang><languageCode Sync="TRUE" value="en"></languageCode></dataLang><idCitation><resTitle Sync="TRUE">fall_line_500k</resTitle><presForm><PresFormCd Sync="TRUE" value="005"></PresFormCd></presForm></idCitation><spatRpType><SpatRepTypCd Sync="TRUE" value="001"></SpatRepTypCd></spatRpType><dataExt><geoEle><GeoBndBox esriExtentType="native"><westBL Sync="TRUE">407946.860156</westBL><eastBL Sync="TRUE">600147.390918</eastBL><northBL Sync="TRUE">3852147.828311</northBL><southBL Sync="TRUE">3706495.548463</southBL><exTypeCode Sync="TRUE">1</exTypeCode></GeoBndBox></geoEle></dataExt><geoBox esriExtentType="decdegrees"><westBL Sync="TRUE">-82.006411</westBL><eastBL Sync="TRUE">-79.905109</eastBL><northBL Sync="TRUE">34.813352</northBL><southBL Sync="TRUE">33.495031</southBL><exTypeCode Sync="TRUE">1</exTypeCode></geoBox></dataIdInfo><mdLang><languageCode Sync="TRUE" value="en"></languageCode></mdLang><mdStanName Sync="TRUE">ISO 19115 Geographic Information - Metadata</mdStanName><mdStanVer Sync="TRUE">DIS_ESRI1.0</mdStanVer><mdChar><CharSetCd Sync="TRUE" value="004"></CharSetCd></mdChar><mdHrLv><ScopeCd Sync="TRUE" value="005"></ScopeCd></mdHrLv><mdHrLvName Sync="TRUE">dataset</mdHrLvName><distInfo><distributor><distorTran><onLineSrc><orDesc Sync="TRUE">002</orDesc><linkage Sync="TRUE">file://\\scdnradmin\data\gisdata\scdata\geology\fall_line_500k.shp</linkage><protocol Sync="TRUE">Local Area Network</protocol></onLineSrc><transSize Sync="TRUE">0.148</transSize></distorTran><distorFormat><formatName Sync="TRUE">Shapefile</formatName></distorFormat></distributor></distInfo><refSysInfo><RefSystem><refSysID><identCode Sync="TRUE">NAD_1927_UTM_Zone_17N</identCode></refSysID></RefSystem></refSysInfo><spatRepInfo><VectSpatRep><topLvl><TopoLevCd Sync="TRUE" value="001"></TopoLevCd></topLvl><geometObjs Name="fall_line_500k"><geoObjTyp><GeoObjTypCd Sync="TRUE" value="001"></GeoObjTypCd></geoObjTyp><geoObjCnt Sync="TRUE">133</geoObjCnt></geometObjs></VectSpatRep></spatRepInfo><mdDateSt Sync="TRUE">20060607</mdDateSt></metadata>
