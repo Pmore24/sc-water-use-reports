@@ -45,6 +45,7 @@ options(dplyr.summarise.inform = FALSE)
 
 ```{r setup-year, include=FALSE}
 source(here("R","01-ID-code-functions.R"))
+source(here("R","plot_PRM.R"))
 y <- 2022
 req_basin <- "Upper Savannah"
 
