@@ -1,3 +1,4 @@
+#Alex's functions:
 #' @title REGEX (Regular Expression)
 #' @description Defines the structure of a character vector, here a sourceid or
 # a userid
@@ -13,6 +14,12 @@ sourceIDregex <- "^[0-4]\\d(OT|IN|GC|PN|PT|IR|AQ|WS|PH|MI)\\d\\d\\d(G|S|P|E)\\d\
 #' @param x Character vector of SourceIDs
 #' @return A logical vector (TRUE or FALSE)
 #' @export
+# sourceid_val <- function(x){
+#   stringr::str_detect(x, sourceIDregex) & nchar(x) == 10 & !{
+#     stringr::str_sub(x, start=1, end=2) %in% c("47","48","49","00")
+#   }
+# }
+
 sourceid_val <- function(x){
   dplyr::if_else(
     condition = !is.na(x),
@@ -21,7 +28,7 @@ sourceid_val <- function(x){
     true = stringr::str_detect(x, sourceIDregex) &
       nchar(x) == 10 &
       !(stringr::str_sub(x, start=1, end=2) %in% c("47","48","49","00")))
-  }
+}
 
 #' @title Validating userid
 #' @description Checks if there are 7 characters in a userid and their validity
@@ -37,25 +44,34 @@ userid_val <- function(x){
   }
 }
 
-#' @title Parse userids
-#' @description Decode userids and add columns with the coded information: CategoryCode, Category, and UserCounty.
+
+#' @title Add userid, water use category,category code,county,and source columns.
+#' @description Extract the appropriate character or number code from the sourceid,
+#  and add columns to the data frame for important information such the
+#  userid, water use category, category code, county, and, source.
+#' @param table A table with a column of SourceIDs
+#' @param column A single column of SourceIDs
+#' @importFrom dplyr mutate
+#' @importFrom dplyr recode
+#' @importFrom dplyr select
+#' @importFrom dplyr %>%
+#' @return a table with columns for userid, water use category, category code,
+#  county, and source.
 #' @export
-#' @param x a table with a userid column
-#' @param userid_column the name of the userid column (as a character string)
-#' @return the table with added columns derived from the userids.
-parse_userid <- function(x, userid_column='userid') {
-  userids <- x[,userid_column, drop=T]
-  x[,"CategoryCode"] <- substring(userids, 3,4)
-  x[,"Category"] <- dplyr::recode(
-    x$CategoryCode, GC="Golf", MI="Mining",
+parse_ID_cols <- function(table, column) {
+  SourceID <- table[,column, drop=T]
+  table[, "UserID"] <- substring(SourceID, 1,7)
+  table[, "CategoryCode"] <- substring(SourceID, 3,4)
+  table[, "Category"] <- dplyr::recode(
+    table$CategoryCode, GC="Golf", MI="Mining",
     IN="Industry", WS="Water Supply", IR="Agriculture",
     PT="Thermal Power", PN="Nuclear Power", PH="Hydro Power",
     OT="Other", AQ="Aquaculture")
-  x[,"UserCounty"] <- dplyr::recode(
-    substring(userids, 1,2),
+  table[, "UserCounty"] <- dplyr::recode(
+    substring(SourceID, 1,2),
     `01`= "Abbeville", `02`="Aiken",`03`='Allendale',
     `04`= 'Anderson',`05`='Bamberg',`06`= 'Barnwell',`07`= 'Beaufort',
-    `08`='Berkeley',`09`='Calhoun',`10`='Charleston',`11`='Cherokee',
+    `08`='Berkely',`09`='Calhoun',`10`='Charleston',`11`='Cherokee',
     `12`='Chester',`13`='Chesterfield',`14`='Clarendon',`15`='Colleton',
     `16`='Darlington',`17`='Dillon',`18`='Dorchester',`19`='Edgefield',
     `20`='Fairfield',`21`='Florence',`22`='Georgetown',`23`='Greenville',
@@ -64,26 +80,10 @@ parse_userid <- function(x, userid_column='userid') {
     `34`='Marlboro',`35`='McCormick',`36`='Newberry',`37`='Oconee',`38`='Orangeburg',
     `39`='Pickens',`40`='Richland',`41`='Saluda',`42`='Spartanburg',`43`='Sumter',
     `44`='Union',`45`='Williamsburg',`46`='York')
-  return(x)
+  table[, "Water_SourceCode"] <- substring(SourceID,8,8)
+  table[, "Water_Source"] <- dplyr::recode(
+    table$Water_SourceCode, G="Ground Withdrawal", S="Surface Withdrawal", E="Increased Evaporation", P="Purchase")
+  return(table)
 }
 
-#' @title Parse sourceids
-#' @description Decode sourceids and add columns with the coded information:
-#' userid, SourceTypeCode, SourceType, CategoryCode, Category, and UserCounty.
-#' @export
-#' @param x a table with a sourceid column
-#' @param sourceid_column the name of the sourceid column (as a character string)
-#' @return the table with added columns derived from the sourceids.
-#' @export
-parse_sourceid <- function(x, sourceid_column='sourceid') {
-  sourceids <- x[,sourceid_column, drop=T]
-  dplyr::mutate(x,
-                userid=stringr::str_sub(sourceids, 1, 7),
-                SourceTypeCode=stringr::str_sub(sourceids,8,8),
-                SourceType=dplyr::recode(SourceTypeCode,
-                                   G="Ground Withdrawal",
-                                   S="Surface Withdrawal",
-                                   E="Increased Evaporation",
-                                   P="Purchase")) |>
-    parse_userid()
-}
+
