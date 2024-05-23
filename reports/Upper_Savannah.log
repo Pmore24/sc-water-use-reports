@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.28)  22 MAY 2024 19:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2022.2.28)  22 MAY 2024 20:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -597,12 +597,12 @@ Overfull \hbox (21.56665pt too wide) in paragraph at lines 221--237
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<figures/combine-bar-plots-noPH-1.png, id=84, 867.24pt x 722.7pt>
-File: figures/combine-bar-plots-noPH-1.png Graphic file (type png)
-<use figures/combine-bar-plots-noPH-1.png>
-Package pdftex.def Info: figures/combine-bar-plots-noPH-1.png  used on input line 241.
+<UP_figures/combine-bar-plots-noPH-1.png, id=84, 867.24pt x 722.7pt>
+File: UP_figures/combine-bar-plots-noPH-1.png Graphic file (type png)
+<use UP_figures/combine-bar-plots-noPH-1.png>
+Package pdftex.def Info: UP_figures/combine-bar-plots-noPH-1.png  used on input line 241.
 (pdftex.def)             Requested size: 469.75827pt x 391.46521pt.
-[3] [4 <./figures/combine-bar-plots-noPH-1.png>]
+[3] [4 <./UP_figures/combine-bar-plots-noPH-1.png>]
 Overfull \hbox (12.5835pt too wide) in paragraph at lines 273--291
  [][] 
  []
@@ -612,73 +612,73 @@ Overfull \hbox (15.98387pt too wide) in paragraph at lines 335--350
  [][] 
  []
 
-<figures/combine-bar-plots-nopower-1.png, id=106, 867.24pt x 650.43pt>
-File: figures/combine-bar-plots-nopower-1.png Graphic file (type png)
-<use figures/combine-bar-plots-nopower-1.png>
-Package pdftex.def Info: figures/combine-bar-plots-nopower-1.png  used on input line 354.
+<UP_figures/combine-bar-plots-nopower-1.png, id=106, 867.24pt x 650.43pt>
+File: UP_figures/combine-bar-plots-nopower-1.png Graphic file (type png)
+<use UP_figures/combine-bar-plots-nopower-1.png>
+Package pdftex.def Info: UP_figures/combine-bar-plots-nopower-1.png  used on input line 354.
 (pdftex.def)             Requested size: 469.75827pt x 352.31868pt.
-[6] [7 <./figures/combine-bar-plots-nopower-1.png>]
-<figures/trend-bar-plot-all_cat_noPH-1.png, id=119, 722.7pt x 794.97pt>
-File: figures/trend-bar-plot-all_cat_noPH-1.png Graphic file (type png)
-<use figures/trend-bar-plot-all_cat_noPH-1.png>
-Package pdftex.def Info: figures/trend-bar-plot-all_cat_noPH-1.png  used on input line 412.
+[6] [7 <./UP_figures/combine-bar-plots-nopower-1.png>]
+<UP_figures/trend-bar-plot-all_cat_noPH-1.png, id=119, 722.7pt x 794.97pt>
+File: UP_figures/trend-bar-plot-all_cat_noPH-1.png Graphic file (type png)
+<use UP_figures/trend-bar-plot-all_cat_noPH-1.png>
+Package pdftex.def Info: UP_figures/trend-bar-plot-all_cat_noPH-1.png  used on input line 412.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
 [8]
-<figures/trend-bar-plot-all_cat_nopower-1.png, id=132, 722.7pt x 794.97pt>
-File: figures/trend-bar-plot-all_cat_nopower-1.png Graphic file (type png)
-<use figures/trend-bar-plot-all_cat_nopower-1.png>
-Package pdftex.def Info: figures/trend-bar-plot-all_cat_nopower-1.png  used on input line 426.
+<UP_figures/trend-bar-plot-all_cat_nopower-1.png, id=132, 722.7pt x 794.97pt>
+File: UP_figures/trend-bar-plot-all_cat_nopower-1.png Graphic file (type png)
+<use UP_figures/trend-bar-plot-all_cat_nopower-1.png>
+Package pdftex.def Info: UP_figures/trend-bar-plot-all_cat_nopower-1.png  used on input line 426.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
-[9 <./figures/trend-bar-plot-all_cat_noPH-1.png>]
-<figures/trend-TH_bar-plot-1.png, id=139, 722.7pt x 289.08pt>
-File: figures/trend-TH_bar-plot-1.png Graphic file (type png)
-<use figures/trend-TH_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-TH_bar-plot-1.png  used on input line 439.
+[9 <./UP_figures/trend-bar-plot-all_cat_noPH-1.png>]
+<UP_figures/trend-TH_bar-plot-1.png, id=139, 722.7pt x 289.08pt>
+File: UP_figures/trend-TH_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-TH_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-TH_bar-plot-1.png  used on input line 439.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
-[10 <./figures/trend-bar-plot-all_cat_nopower-1.png>]
-<figures/trend-WS_bar-plot-1.png, id=147, 722.7pt x 794.97pt>
-File: figures/trend-WS_bar-plot-1.png Graphic file (type png)
-<use figures/trend-WS_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-WS_bar-plot-1.png  used on input line 452.
+[10 <./UP_figures/trend-bar-plot-all_cat_nopower-1.png>]
+<UP_figures/trend-WS_bar-plot-1.png, id=147, 722.7pt x 794.97pt>
+File: UP_figures/trend-WS_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-WS_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-WS_bar-plot-1.png  used on input line 452.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
-[11 <./figures/trend-TH_bar-plot-1.png>]
-<figures/trend-IN_bar-plot-1.png, id=156, 722.7pt x 289.08pt>
-File: figures/trend-IN_bar-plot-1.png Graphic file (type png)
-<use figures/trend-IN_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-IN_bar-plot-1.png  used on input line 465.
+[11 <./UP_figures/trend-TH_bar-plot-1.png>]
+<UP_figures/trend-IN_bar-plot-1.png, id=156, 722.7pt x 289.08pt>
+File: UP_figures/trend-IN_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-IN_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-IN_bar-plot-1.png  used on input line 465.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
-[12 <./figures/trend-WS_bar-plot-1.png>]
-<figures/trend-Ag_bar-plot-1.png, id=164, 722.7pt x 794.97pt>
-File: figures/trend-Ag_bar-plot-1.png Graphic file (type png)
-<use figures/trend-Ag_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-Ag_bar-plot-1.png  used on input line 478.
+[12 <./UP_figures/trend-WS_bar-plot-1.png>]
+<UP_figures/trend-Ag_bar-plot-1.png, id=164, 722.7pt x 794.97pt>
+File: UP_figures/trend-Ag_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-Ag_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-Ag_bar-plot-1.png  used on input line 478.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
-[13 <./figures/trend-IN_bar-plot-1.png>]
-<figures/trend-GC_bar-plot-1.png, id=173, 722.7pt x 794.97pt>
-File: figures/trend-GC_bar-plot-1.png Graphic file (type png)
-<use figures/trend-GC_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-GC_bar-plot-1.png  used on input line 491.
+[13 <./UP_figures/trend-IN_bar-plot-1.png>]
+<UP_figures/trend-GC_bar-plot-1.png, id=173, 722.7pt x 794.97pt>
+File: UP_figures/trend-GC_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-GC_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-GC_bar-plot-1.png  used on input line 491.
 (pdftex.def)             Requested size: 469.76045pt x 516.73651pt.
-[14 <./figures/trend-Ag_bar-plot-1.png>]
-<figures/trend-MI_bar-plot-1.png, id=181, 722.7pt x 289.08pt>
-File: figures/trend-MI_bar-plot-1.png Graphic file (type png)
-<use figures/trend-MI_bar-plot-1.png>
-Package pdftex.def Info: figures/trend-MI_bar-plot-1.png  used on input line 504.
+[14 <./UP_figures/trend-Ag_bar-plot-1.png>]
+<UP_figures/trend-MI_bar-plot-1.png, id=181, 722.7pt x 289.08pt>
+File: UP_figures/trend-MI_bar-plot-1.png Graphic file (type png)
+<use UP_figures/trend-MI_bar-plot-1.png>
+Package pdftex.def Info: UP_figures/trend-MI_bar-plot-1.png  used on input line 504.
 (pdftex.def)             Requested size: 469.76045pt x 187.90417pt.
-[15 <./figures/trend-GC_bar-plot-1.png>] [16 <./figures/trend-MI_bar-plot-1.png>] [17] (./Upper_Savannah.aux)
+[15 <./UP_figures/trend-GC_bar-plot-1.png>] [16 <./UP_figures/trend-MI_bar-plot-1.png>] [17] (./Upper_Savannah.aux)
 Package rerunfilecheck Info: File `Upper_Savannah.out' has not changed.
 (rerunfilecheck)             Checksum: B5B5E806651CE8738A4336E5EEC74CE7;4257.
  ) 
 Here is how much of TeX's memory you used:
  13794 strings out of 480236
- 227818 string characters out of 5894214
+ 228121 string characters out of 5894214
  533994 words of memory out of 5000000
  31431 multiletter control sequences out of 15000+600000
  514650 words of font info for 67 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  60i,12n,63p,630b,424s stack positions out of 5000i,500n,10000p,200000b,80000s
 {c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}<c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/morep/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb>
-Output written on Upper_Savannah.pdf (17 pages, 2162000 bytes).
+Output written on Upper_Savannah.pdf (17 pages, 2161997 bytes).
 PDF statistics:
  255 PDF objects out of 1000 (max. 8388607)
  199 compressed objects within 2 object streams
