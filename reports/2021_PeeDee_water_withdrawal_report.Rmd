@@ -1,0 +1,1873 @@
+---
+title: "Water Withdrawal Report for the Pee Dee Basin (2021)"
+author: "South Carolina Department of Natural Resources"
+date: "October 2022"
+output:
+  #word_document: default
+  #html_document: default
+  pdf_document: default
+header-includes:
+- \usepackage{caption}
+- \usepackage{subfig}
+- \usepackage{float} # to avoid floating tables 
+- \captionsetup[figure]{labelformat=empty}
+- \captionsetup[table]{labelformat=empty}
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning = FALSE,
+                      fig.pos = 'H')
+```
+
+```{r read-in, include=FALSE}
+library(scwaterwithdrawaldata)
+library(dplyr)
+library(knitr)
+library(rmarkdown)
+library(writexl)
+library(tidyverse)
+library(openxlsx)
+library(ggrepel)
+library(plotly)
+library(scales)
+library(lubridate)
+library(ggpubr)
+library(ggplot2)
+library(sf)
+library(gridExtra)
+library(grid)
+library(xlsx)
+options(dplyr.summarise.inform = FALSE)
+```
+
+```{r setup-year}
+y <- 2021
+basin <- "Pee Dee"
+
+y_d <-scwaterwithdrawaldata::leap_year_check(y)
+
+trend_year1 <- 2011:2021
+trend_year2 <- 2002:2021
+```
+
+```{r shp-import,include=FALSE}
+# old basin boundary shp
+# major_river_basins_map_import <- sf::st_read("C:/Users/morep/Documents/R_package/scwaterwithdrawaldata/data_DHEC/GIS_data/SC_Major_River_Basins.shp") %>%
+# select(Basin) 
+# new basin boundary shp
+
+major_river_basins_map_import <- sf::st_read("C:/Users/MoreP/OneDrive - South Carolina Department of Natural Resources/Documents/R_package/scwaterwithdrawaldata/data_DHEC/GIS_data/PlanningBasins2022.shp") %>%
+  select(Plannning_) %>%
+  dplyr::rename(Basin=`Plannning_`)
+
+major_river_basins_map_import <- cbind(major_river_basins_map_import, sf::st_coordinates(sf::st_centroid(major_river_basins_map_import)))
+  
+
+highlight_basin <- major_river_basins_map_import %>%
+select(Basin) %>% dplyr::filter(Basin == basin)
+
+maj_lakes_import <- sf::st_read("E:/scwaterwithdrawaldata/data_DHEC/GIS_data/maj_lakes.shp")
+
+# Catawba_maj_lakes <-st_crop(maj_lakes_import$geometry, Catawba_basin$geometry)
+# plot(Catawba_maj_lakes)
+
+maj_rivers_import <- sf::st_read("E:/scwaterwithdrawaldata/data_DHEC/GIS_data/majorRiverNHD.shp") %>%
+  sf::st_zm(drop = TRUE, what = "ZM")
+
+# Catawba_maj_rivers <- st_crop(maj_rivers_import$geometry, Catawba_basin$geometry)
+
+counties_import <- sf::st_read("C:/Users/MoreP/OneDrive - South Carolina Department of Natural Resources/Documents/R_package/scwaterwithdrawaldata/data_DHEC/GIS_data/CountyBND_500K.shp") %>%
+  dplyr::select(COUNTY, geometry)
+ counties_import <- cbind(counties_import, sf::st_coordinates(sf::st_centroid(counties_import))) 
+```
+
+```{r import-wu_monit_2000_2021}
+wu_monit_2000_2021 <- readRDS("wu_monit_2000_2021.rds") %>%
+  dplyr::mutate(Spatial_basin = ifelse(sourceid == "20WS002G16", "Catawba", Spatial_basin)) %>%
+  dplyr::mutate(Total_MGD = (total/y_d)) %>%
+  dplyr::relocate(Total_MGD, .after = total) %>%
+  dplyr::mutate(Spatial_basin = dplyr::recode(Spatial_basin, 'PeeDee' = 'Pee Dee'))
+
+write_xlsx(wu_monit_2000_2021, "C:/Users/MoreP/OneDrive - South Carolina Department of Natural Resources/Documents/Drought-Monitoring/Send_Scott/wu_2000_2021.xlsx")
+
+```
+
+```{r for-reference, eval=FALSE}
+PD_2011_2021 <- wu_monit_2000_2021 %>%
+  filter(Spatial_basin=="Pee Dee", year>=2011)
+
+write_xlsx(PD_2011_2021, "D:\\PeeDee_RBC\\PD_2011_2021.xlsx")
+```
+
+```{r GW-pumping, eval=FALSE}
+total_2021 <- wu_monit_2000_2021 %>%
+  dplyr::filter(year==2021)
+write_xlsx(total_2021, "D:\\scwaterwithdrawaldata\\total_wu_2021.xlsx")
+
+wu_monit_2000_2021_GW <- wu_monit_2000_2021 %>%
+  dplyr::filter(Water_SourceCode =="G")
+
+GW_annual_withdrawals_1900_2021_current <- readxl::read_excel("D:/R_package/GW_Pumping/GW_model_inputs//WEL_Current_Annual_Withdrawals_1900_2021.xlsx") %>%
+  dplyr::rename(Pumping_cfs = Q) %>%
+  dplyr::mutate(year=lubridate::year(Date)) %>%
+  dplyr::mutate(Pumping_MGD = ((Pumping_cfs*7.4805*60*60*24)/(10^6))) %>%
+  dplyr::select(sourceid, year, Pumping_cfs, Pumping_MGD)
+
+# these wells are pumping from single aquifer, so the to and from layer is same.
+# That's why I am only using one layer column and renaming it as "aquifer". 
+Well_info <- readxl::read_excel("D:/R_package/GW_Pumping/GW_model_inputs//WEL_wells.xlsx") %>%
+  dplyr::rename(sourceid=Name, aquifer_model=from_layer) %>% 
+  dplyr::mutate(
+  aquifer_model = dplyr::recode(aquifer_model, 
+                           "1" = "Surficial",
+                           "3" = "Upper Floridan",
+                       "5" = "Middle Floridan",
+                       "7" = "Gordon", "9" = "Crouch Branch", "11" = "McQueen Branch", "13" = "Charleston", "15" = "Gramling", "16" = "Crystalline Rock", "NA" = "Santee LS" )) %>%
+  dplyr::select("sourceid", "aquifer_model")
+
+GW_pumping_data <-dplyr::left_join(wu_monit_2000_2021_GW, GW_annual_withdrawals_1900_2021_current, by = c('sourceid'='sourceid', 'year'='year'))
+
+GW_pumping_data <- dplyr::left_join(GW_pumping_data, Well_info, by = 'sourceid')
+
+write_xlsx(GW_pumping_data, "D:\\R_package\\GW_pumping\\GW_pumping_data.xlsx")
+
+
+```
+
+```{r Jasper-WU-2021, eval=FALSE}
+Jasper_WU <- wu_monit_2000_2021 %>%
+  dplyr::filter(year==2021, Spatial_county=="Jasper")
+
+write_xlsx(Jasper_WU, "D:\\scwaterwithdrawaldata\\Jasper_WU.xlsx")
+```
+
+|       This report summarizes reported water withdrawals in the `r basin` River basin for the year `r y`, provided by the South Carolina Department of Health and Environmental Control (SCDHEC) through the Surface Water Withdrawal, Permitting, Use and Reporting Act and the Groundwater Use and Reporting Act, both administered by SCDHEC. The SCDHEC maintains a water-use database for all the registered and permitted users of all major categories (Table 1) in the state that are required to report their water withdrawals for the active months and years (SCDHEC Water Use Report, 2020)$^1$. 
+|       In this report, the term “withdrawal” refers to the surface or groundwater withdrawn by a water user/ facility from a surface water source (river, lake, pond) or groundwater source (aquifer). SCDHEC has water withdrawal data in million gallons per month (MGM), however, for this annual report, the monthly withdrawals were summed for the required year and averaged in million gallons per day (MGD).
+
+```{r water-use-cat-description}
+Category <- c("Thermoelectric Power", "Hydroelectric Power", "Water Supply", "Industry", "Agriculture", "Golf Course", "Mining", "Aquaculture")
+
+Description <- c("Water used in generating electricity from fossil fuel (coal, oil, natural gas), geothermal, biomass, soild waste, or nuclear energy.", "Water used in generating electricity where turbine generators are driven by falling water.", "Water withdrawn by public and private water suppliers and conveyed to users or groups of users. Water Suppliers provide water for a variety of uses including domestic, commercial, industrial and public water use.", "Water used for commercial and industrial purposes, including fabrication, processing, washing, in-plant conveyance and cooling.", "Water used for agricultural and landscaping purposes, including turf farming and livestock management.", "Water used to maintain golf course turf, including tee boxes, fairways, putting greens, associated practice areas and periphery aesthetic landscaping.","Water used for in conjunction with surface or subsurface mining of minerals or natural materials." , "Water used for raising, farming, and/or harvesting organisms that live in water, such as shrimp, fish, and other vegetal matter (seaweed).")
+
+Cat_descrip <- data.frame(Category, Description)
+
+kableExtra::kbl(Cat_descrip, caption = '\\textbf{Table 1.} Description of water use categories', escape = FALSE, col.names = c("Category", "Description"),booktabs= T, linesep = '') %>%
+  kableExtra::column_spec(2, width ="12 cm") %>%
+  kableExtra::kable_styling(latex_options = ("hold_position")) %>%
+  kableExtra::row_spec(0, align="c")
+
+```
+
+```{r PeeDee-map, fig.cap= '\\textbf{Figure 1.} Major river basins in South Carolina, highlighting the Pee Dee basin.', fig.width= 7, fig.height=5, echo=FALSE}
+Basin_map <- basin_map(major_river_basin_shp=major_river_basins_map_import, req_basin_shp = highlight_basin)
+Basin_map
+
+```
+
+```{r export-figure-broad-map}
+basin_map_export <- Basin_map +
+  theme(legend.position = "right", legend.text = element_text(size = 50),
+        legend.title = element_blank())
+  
+ggsave(filename = file.path("D:/PeeDee_plots", "basin_map_export.png"), width = 22, height = 22, dpi = 300, units = "in", device = 'png')
+```
+
+## 1.1 Summary of Water Withdrawals, Excluding Hydroelectric Power
+```{r basinwise-source-noPH-WU, echo=FALSE}
+#options(scipen=999) # remove scientific notation
+no_ph_basinwise_wu_source <- wu_monit_2000_2021 %>% 
+  dplyr::filter(year== y & Category != "Hydro Power") %>%
+  dplyr::group_by(Spatial_basin,Water_SourceCode) %>%
+  dplyr::summarise(Total_MGD = sum(Total_MGD)) %>%
+  tidyr::spread(Water_SourceCode, Total_MGD) %>%
+  dplyr::rename(Groundwater = G,
+                Surface_water =S) %>% rowwise() %>%
+  dplyr::mutate(Total_MGD = sum(Groundwater,Surface_water, na.rm = TRUE)) %>%
+  dplyr::mutate(.,Percentage_GW = ((Groundwater/sum(.$Groundwater, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Percentage_SW = ((Surface_water/sum(.$Surface_water, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Percentage_Total =((Total_MGD/sum(.$Total_MGD, na.rm = TRUE))*100)) %>%
+  dplyr::relocate(Percentage_GW, .after = Groundwater) %>%
+  dplyr::relocate(Percentage_SW, .after = Surface_water) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) %>%
+  dplyr::filter(!is.na(Spatial_basin)) # remove row with NA (in 2021 data, there's a well without any coordinates. Therefore spatial basin cannot be designated)
+
+no_ph_basinwise_wu_source <- no_ph_basinwise_wu_source [-1,]
+```
+
+```{r no_PH_basin_withdrawal_rank_text, echo=FALSE, message=FALSE}
+rank_label <- data.frame(Rank= c(1:8), label=c("highest","second highest", "third highest", "fourth highest", "fifth highest", "sixth highest", "seventh highest", "least"))
+
+no_PH_basin_withdrawal_rank <- no_ph_basinwise_wu_source %>% as.data.frame() %>%
+  # dplyr::select(Spatial_basin, Groundwater, Surface_water, Total_MGD) %>%
+  dplyr::filter(Spatial_basin!="Total") %>%
+  dplyr::mutate(Total_Rank = rank(desc(Total_MGD)),
+                SW_Total_Rank = rank(desc(Surface_water)),
+                GW_Total_Rank = rank(desc(Groundwater))) %>%
+  dplyr::left_join(rank_label, by=c("Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("SW_Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("GW_Total_Rank"="Rank")) %>%
+  dplyr::rename(Total_label=label.x, SW_total_label=label.y, GW_total_label=label)
+
+basin_tot <- no_PH_basin_withdrawal_rank %>%
+  dplyr::filter(Spatial_basin==basin) %>%
+  as.data.frame()
+```
+
+|       Water used for Hydroelectric Power generation is returned directly to the river from which it was withdrawn and is, therefore, omitted from this analysis. After excluding water withdrawals for Hydroelectric Power, the `r basin` basin (Fig. 1) had the `r basin_tot$Total_label` total water withdrawals among the eight major river basins in the State (Table 2). In `r y`, `r sprintf("%.1f",(basin_tot$Total_MGD))` million gallons per day (MGD) were withdrawn from the `r basin` basin, accounting for `r sprintf("%.1f",(basin_tot$Percentage_Total))` percent of the total amount of water used in the State. The basin had the `r basin_tot$GW_total_label` groundwater withdrawals (`r sprintf("%.1f",(basin_tot$Groundwater))` MGD), accounting for `r sprintf("%.1f",(basin_tot$Percentage_GW))` percent of the total amount of groundwater used in the State, and the `r basin_tot$SW_total_label` surface water withdrawals (`r sprintf("%.1f",(basin_tot$Surface_water))` MGD), accounting for `r sprintf("%.1f",(basin_tot$Percentage_SW))` percent of the total amount of surface water used in the State (Table 2).
+```{r Table_2, echo=FALSE, message=FALSE}
+#Summary of water withdrawals for the eight basins by sources (no PH) for the required year.
+
+kableExtra::kbl(no_ph_basinwise_wu_source, caption = paste0('\\textbf{Table 2.} ',y, ' Water withdrawals excluding Hydroelectric Power in the eight major river basins by source'), escape = FALSE, col.names = c("Basin", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits =1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(1:8, width ="2 cm") %>%
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  kableExtra::row_spec(8, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position")) 
+```
+
+```{r summary-source-no-PH, echo=FALSE, message=FALSE}
+# will be used for creating pie chart
+no_PH_source_summary <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude = "Hydro Power") 
+
+# will be used for creating table
+
+no_PH_source_summary2 <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude = "Hydro Power") %>%
+  dplyr::select(!"labels") %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+                # Total_water_distribution = dplyr::recode(Total_water_distribution, "Surface Water" = "SW"),
+                # Total_water_distribution= dplyr::recode(Total_water_distribution, "Groundwater" = "GW")) %>%
+  janitor::adorn_totals("row", na.rm = TRUE)
+
+kableExtra::kbl(no_PH_source_summary2,
+             caption = paste0('\\textbf{Table 3.} ',y,' Water withdrawals excluding Hydroelectric Power in the ', basin, ' basin by source '), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"),escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+
+```{r no-PH-category-rank}
+# Pee Dee basin has only Nuclear Power but its recoded as Thermoelectric Power
+no_PH_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power")
+
+no_PH_cat_withdrawal_rank <- no_PH_cat_summary2 %>% as.data.frame() %>%
+  # dplyr::select(Category, Groundwater, Surface_water, Total_MGD) %>%
+  dplyr::filter(Category!="Total") %>%
+  dplyr::mutate(Total_Rank = rank(desc(Total_MGD),na.last = "keep"),
+                SW_Total_Rank = rank(desc(Surface_water),na.last = "keep"),
+                GW_Total_Rank = rank(desc(Groundwater), na.last = "keep")) %>%
+  dplyr::left_join(rank_label, by=c("Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("SW_Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("GW_Total_Rank"="Rank")) %>%
+  dplyr::rename(Total_label=label.x, SW_total_label=label.y, GW_total_label=label) %>%
+  dplyr::mutate(Category = recode(Category, Thermoelectric = "Thermoelectric Power"))
+
+```
+
+|       Of the `r sprintf("%.1f",basin_tot$Total_MGD)` MGD withdrawn in the `r basin` basin in `r y`, surface water sources accounted for `r sprintf("%.1f",(subset(no_PH_source_summary2, Total_water_distribution=="Surface Water")$percentage))` percent (`r sprintf("%.1f",(subset(no_PH_source_summary2, Total_water_distribution=="Surface Water")$Total_MGD))` MGD) and groundwater sources for `r sprintf("%.1f",(subset(no_PH_source_summary2, Total_water_distribution=="Groundwater")$percentage))` percent (`r sprintf("%.1f",(subset(no_PH_source_summary2, Total_water_distribution=="Groundwater")$Total_MGD))` MGD) (Table 3). Among the water-use categories, `r subset(no_PH_cat_withdrawal_rank, Total_Rank==1)$Category` used, by far, the most water (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==1)$Total_MGD))` MGD) accounting for `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==1)$Percentage_Total))` percent of the total, followed by `r subset(no_PH_cat_withdrawal_rank, Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==2)$Total_MGD))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==2)$Percentage_Total))` percent) and `r subset(no_PH_cat_withdrawal_rank, Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==3)$Total_MGD))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==3)$Percentage_Total))` percent) (Table 4). The remaining water-use categories used much lesser amounts—`r subset(no_PH_cat_withdrawal_rank, Total_Rank==4)$Category` accounting for `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==4)$Percentage_Total))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==4)$Total_MGD))` MGD), `r subset(no_PH_cat_withdrawal_rank, Total_Rank==5)$Category` for `r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==5)$Percentage_Total))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==5)$Total_MGD))` MGD), and `r subset(no_PH_cat_withdrawal_rank, Total_Rank==6)$Category` for `r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==6)$Percentage_Total))` percent (`r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, Total_Rank==6)$Total_MGD))` MGD) (Table 4; Fig. 2).
+
+|       Of the `r sprintf("%.1f",(basin_tot$Surface_water))` MGD withdrawn from surface water sources in the `r basin` basin, `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==1)$Category` accounted for `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==1)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==1)$Surface_water))` MGD), followed by `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==2)$Surface_water))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==2)$Percentage_SW))` percent) and `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==3)$Surface_water))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==3)$Percentage_SW))` percent). The remaining water use categories had much smaller withdrawals with  `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==4)$Category` accounting for `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==4)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==4)$Surface_water))` MGD), `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==5)$Category` for  `r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==5)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==5)$Surface_water))` MGD), and `r subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==6)$Category` for `r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==6)$Percentage_SW))` percent (`r sprintf("%.2f",(subset(no_PH_cat_withdrawal_rank, SW_Total_Rank==6)$Surface_water))` MGD) (Table 4; Fig. 2). 
+
+|       Of the `r sprintf("%.1f",(basin_tot$Groundwater))` MGD withdrawn from groundwater sources in the `r basin` basin, `r subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==1)$Category` had highest withdrawals, accounting for `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==1)$Percentage_GW))` percent (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==1)$Groundwater))` MGD), followed by `r subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==2)$Groundwater))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==2)$Percentage_GW))` percent) and `r subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==3)$Groundwater))` MGD; `r sprintf("%.1f",(subset(no_PH_cat_withdrawal_rank, GW_Total_Rank==3)$Percentage_GW))` percent) (Table 4; Fig.2).
+
+```{r summary-pie-chart-cat-no-ph, message=FALSE}
+# if we want to make individual pie plots for SW and GW distribution by categories then we need this summary
+no_PH_cat_summary <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power", source=c("S","G")) %>% data.frame()
+
+# if we want to combine the SW,GW, and total by categories then this summary can be used. 
+no_PH_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power")
+
+# table that includes SW,GW,and total water withdrawal distribution by categories. 
+kableExtra::kbl(no_PH_cat_summary2,
+             caption = paste0('\\textbf{Table 4.} ',y,' Water withdrawals excluding Hydroelectric Power in the ', basin, ' basin by category and source '),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(7, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+
+```{r export-figure-3-PeeDee_category_pie_no_PH, eval=FALSE}
+PeeDee_category_pie_no_PH <- PeeDee_category_pie_no_PH +
+  theme_void()+
+  theme(legend.position = "right", legend.text = element_text(size = 40),
+        legend.title = element_blank())
+  
+  
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "PD_category_pie_no_PH.png"), width = 22, height = 22, dpi = 300, units = "in", device = 'png')
+```
+
+```{r combine-bar-plots-noPH, fig.cap= paste0('\\textbf{Figure 2.} ',y,' Water withdrawals excluding Hydroelectric Power in the ',basin, ' basin by category and source. Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=10}
+
+sw_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Surface_water, Percentage_SW) %>%
+  dplyr::filter(Category!="Total") 
+
+sw_no_ph_bar_plot <- cat_bar_plot(dat = sw_no_ph_bar , y_col="Surface_water", x_col="Category", percent_label_col = "Percentage_SW")+
+  geom_bar(stat = "identity", fill = "steelblue4", width = 0.5)+
+  labs(y= "Surface water withdrawals (MGD)", x = "")
+
+
+gw_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Groundwater, Percentage_GW) %>%
+  dplyr::filter(Category!="Total") 
+
+gw_no_ph_bar_plot <- cat_bar_plot(dat = gw_no_ph_bar, y_col="Groundwater", x_col="Category", percent_label_col = "Percentage_GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 0.5)+
+  labs(y= "Groundwater withdrawals (MGD)", x = "")
+
+total_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Total_MGD, Percentage_Total) %>%
+  dplyr::filter(Category!="Total")
+
+total_no_ph_bar_plot <- cat_bar_plot(dat = total_no_ph_bar, y_col="Total_MGD", x_col="Category", percent_label_col = "Percentage_Total")+
+  geom_bar(stat = "identity", fill = "black", width = 0.5)+
+  labs(y= "Total water withdrawals (MGD)", x = "")
+
+ggarrange(gw_no_ph_bar_plot,sw_no_ph_bar_plot, total_no_ph_bar_plot,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+\newpage
+## 1.2 Summary of Water Withdrawals, Excluding Hydroelectric Power and Thermoelectric Power
+```{r no_power_basinwise_wu_source, echo=FALSE}
+#options(scipen=999) # remove scientific notation
+no_power_basinwise_wu_source <- wu_monit_2000_2021 %>% 
+  dplyr::filter(year== y & Category %nin% c("Hydro Power", "Thermo Power", "Nuclear Power")) %>%
+  dplyr::group_by(Spatial_basin,Water_SourceCode) %>%
+  dplyr::summarise(Total_MGD = sum(Total_MGD)) %>%
+  tidyr::spread(Water_SourceCode, Total_MGD) %>%
+  dplyr::rename(Groundwater = G,
+                Surface_water =S) %>% rowwise() %>%
+  dplyr::mutate(Total_MGD = sum(Groundwater,Surface_water, na.rm = TRUE)) %>%
+  dplyr::mutate(.,Percentage_GW = ((Groundwater/sum(.$Groundwater, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Percentage_SW = ((Surface_water/sum(.$Surface_water, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Percentage_Total =((Total_MGD/sum(.$Total_MGD, na.rm = TRUE))*100)) %>%
+  dplyr::relocate(Percentage_GW, .after = Groundwater) %>%
+  dplyr::relocate(Percentage_SW, .after = Surface_water) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) %>%
+  dplyr::filter(!is.na(Spatial_basin)) # remove row with NA
+
+no_power_basinwise_wu_source <- no_power_basinwise_wu_source [-1,]
+```
+
+```{r no_power_basin_withdrawal_rank_text, echo=FALSE, message=FALSE}
+rank_label_no_power <- data.frame(Rank= c(1:8), label=c("highest","second highest", "third highest", "fourth highest", "fifth highest", "sixth highest", "seventh highest", "least"))
+
+no_power_basin_withdrawal_rank <- no_power_basinwise_wu_source %>% as.data.frame() %>%
+  # dplyr::select(Spatial_basin, Groundwater, Surface_water, Total_MGD) %>%
+  dplyr::filter(Spatial_basin!="Total") %>%
+  dplyr::mutate(Total_Rank = rank(desc(Total_MGD)),
+                SW_Total_Rank = rank(desc(Surface_water)),
+                GW_Total_Rank = rank(desc(Groundwater))) %>%
+  dplyr::left_join(rank_label, by=c("Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("SW_Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("GW_Total_Rank"="Rank")) %>%
+  dplyr::rename(Total_label=label.x, SW_total_label=label.y, GW_total_label=label)
+
+basin_tot_no_power <- no_power_basin_withdrawal_rank %>%
+  dplyr::filter(Spatial_basin==basin) %>%
+  as.data.frame()
+```
+
+|       Electrical power generation has high water use in the State (South Carolina State Water Assessment, 2009)$^2$, which tends to overshadow the use of the other major water use categories. The relative proportion of water used by the remaining categories can be clearly illustrated and understood by excluding water used for power generation. For example, on excluding the water used in the State for Hydroelectric and Thermoelectric Power, total water withdrawals in the `r basin` basin ranked `r basin_tot_no_power$Total_label` among the eight river basins, accounting for `r sprintf("%.1f",(basin_tot_no_power$Percentage_Total))` percent (`r sprintf("%.1f",(basin_tot_no_power$Total_MGD))` MGD) of the total water withdrawn in the State (Table 5). On excluding water used for power generation, the `r basin` basin had the `r basin_tot_no_power$SW_total_label` amount of surface water used in the State (`r sprintf("%.1f",(basin_tot_no_power$Surface_water))` MGD; `r sprintf("%.1f",(basin_tot_no_power$Percentage_SW))` percent) and the `r basin_tot_no_power$GW_total_label` amount of groundwater withdrawn (`r sprintf("%.1f",(basin_tot_no_power$Groundwater))` MGD; `r sprintf("%.1f",(basin_tot$Percentage_GW))` percent) (Table 5).
+
+```{r Table_5, echo=FALSE, message=FALSE}
+kableExtra::kbl(no_power_basinwise_wu_source, caption = paste0('\\textbf{Table 5.} ',y, ' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the eight major river basins by source '), escape = FALSE, col.names = c("Basin", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",6))) %>%
+  kableExtra::column_spec(1:8, width ="2 cm") %>%
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  kableExtra::row_spec(8, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+```{r summary-source-no-power, message=FALSE}
+no_power_source_summary <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=2021, basin="Pee Dee", category_to_exclude =c("Hydro Power","Thermal Power", "Nuclear Power"))
+
+no_power_source_summary2 <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=2021, basin="Pee Dee", category_to_exclude =c("Hydro Power","Thermal Power", "Nuclear Power")) %>%
+  dplyr::select(!"labels") %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+                # Total_water_distribution = dplyr::recode(Total_water_distribution, "Surface Water" = "SW"),
+                # Total_water_distribution= dplyr::recode(Total_water_distribution, "Groundwater" = "GW")) %>%
+  janitor::adorn_totals("row", na.rm = TRUE)
+
+
+kableExtra::kbl(no_power_source_summary2,
+             caption = paste0('\\textbf{Table 6.} ',y, ' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', basin, ' basin by source'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+```{r no-power-category-rank}
+
+no_power_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Thermal Power", "Nuclear Power", "Aquaculture"))
+
+no_power_cat_withdrawal_rank <- no_power_cat_summary2 %>% as.data.frame() %>%
+  # dplyr::select(Category, Groundwater, Surface_water, Total_MGD) %>%
+  dplyr::filter(Category!="Total") %>%
+  dplyr::mutate(Total_Rank = rank(desc(Total_MGD),na.last = "keep"),
+                SW_Total_Rank = rank(desc(Surface_water),na.last = "keep"),
+                GW_Total_Rank = rank(desc(Groundwater), na.last = "keep")) %>%
+  dplyr::left_join(rank_label, by=c("Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("SW_Total_Rank"="Rank")) %>%
+  dplyr::left_join(rank_label, by=c("GW_Total_Rank"="Rank")) %>%
+  dplyr::rename(Total_label=label.x, SW_total_label=label.y, GW_total_label=label)
+
+```
+
+|       Of the `r sprintf("%.1f",basin_tot_no_power$Total_MGD)` MGD withdrawn in the `r basin` basin in `r y`. Surface water sources accounted for `r sprintf("%.1f",(subset(no_power_source_summary2, Total_water_distribution=="Surface Water")$percentage))` percent (`r sprintf("%.1f",(subset(no_power_source_summary2, Total_water_distribution=="Surface Water")$Total_MGD))` MGD) and groundwater sources for `r sprintf("%.1f",(subset(no_power_source_summary2, Total_water_distribution=="Groundwater")$percentage))` percent (`r sprintf("%.1f",(subset(no_power_source_summary2, Total_water_distribution=="Groundwater")$Total_MGD))` MGD) (Table 6). Among the water-use categories, `r subset(no_power_cat_withdrawal_rank, Total_Rank==1)$Category` used, by far, the most water (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==1)$Total_MGD))` MGD) accounting for `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==1)$Percentage_Total))` percent of the total, followed by `r subset(no_power_cat_withdrawal_rank, Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==2)$Total_MGD))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==2)$Percentage_Total))` percent) and `r subset(no_power_cat_withdrawal_rank, Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==3)$Total_MGD))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==3)$Percentage_Total))` percent) (Table 7). The remaining water-use categories used much lesser amounts—`r subset(no_power_cat_withdrawal_rank, Total_Rank==4)$Category` accounting for `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==4)$Percentage_Total))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==4)$Total_MGD))` MGD) and `r subset(no_power_cat_withdrawal_rank, Total_Rank==5)$Category` for `r sprintf("%.2f",(subset(no_power_cat_withdrawal_rank, Total_Rank==5)$Percentage_Total))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, Total_Rank==5)$Total_MGD))` MGD) (Table 7; Fig. 3).
+
+|       Of the `r sprintf("%.1f",(basin_tot_no_power$Surface_water))` MGD withdrawn from surface water sources in the `r basin` basin, `r subset(no_power_cat_withdrawal_rank, SW_Total_Rank==1)$Category` accounted for `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==1)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==1)$Surface_water))` MGD), followed by `r subset(no_power_cat_withdrawal_rank, SW_Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==2)$Surface_water))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==2)$Percentage_SW))` percent) and `r subset(no_power_cat_withdrawal_rank, SW_Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==3)$Surface_water))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==3)$Percentage_SW))` percent). The remaining water use categories had much smaller withdrawals with  `r subset(no_power_cat_withdrawal_rank, SW_Total_Rank==4)$Category` accounting for `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==4)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==4)$Surface_water))` MGD) and `r subset(no_power_cat_withdrawal_rank, SW_Total_Rank==5)$Category` for  `r sprintf("%.2f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==5)$Percentage_SW))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, SW_Total_Rank==5)$Surface_water))` MGD) (Table 7; Fig. 3). 
+
+|       Of the `r sprintf("%.1f",(basin_tot_no_power$Groundwater))` MGD withdrawn from groundwater sources in the `r basin` basin, `r subset(no_power_cat_withdrawal_rank, GW_Total_Rank==1)$Category` had highest withdrawals, accounting for `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==1)$Percentage_GW))` percent (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==1)$Groundwater))` MGD), followed by `r subset(no_power_cat_withdrawal_rank, GW_Total_Rank==2)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==2)$Groundwater))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==2)$Percentage_GW))` percent), followed by `r subset(no_power_cat_withdrawal_rank, GW_Total_Rank==3)$Category` (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==3)$Groundwater))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==3)$Percentage_GW))` percent), and followed by lowest withdrawal for `r subset(no_power_cat_withdrawal_rank, GW_Total_Rank==4)$Category`  (`r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==4)$Groundwater))` MGD; `r sprintf("%.1f",(subset(no_power_cat_withdrawal_rank, GW_Total_Rank==4)$Percentage_GW))` percent) (Table 7; Fig.3).
+
+```{r PeeDee-source-cat-no-power-table,message=FALSE }
+# PeeDee_source_pie_no_power <- pie_source_graph(pie_source_summary=no_power_source_summary)
+# PeeDee_source_pie_no_power
+
+no_power_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Thermal Power", "Nuclear Power", "Aquaculture"))
+
+# # table that includes SW,GW,and total water withdrawal distribution by categories. 
+kableExtra::kbl(no_power_cat_summary2,
+             caption = paste0('\\textbf{Table 7.} ',y,' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', basin, ' basin by category and source'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",6))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>%
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  kableExtra::row_spec(5, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+<!-- below code chunk is for generating pie charts for categories (not required in report but need to be saved for presentation purpose). This chunk should still be evaluated (eval = TRUE) but not printed -->
+
+```{r combined-cat-no-power, message=FALSE,fig.cap= paste0('\\textbf{Figure.} ',y,' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', basin, ' basin by category and source.'), fig.align="center", echo=FALSE, fig.width=12, fig.height=5}
+no_power_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Thermal Power", "Nuclear Power", "Aquaculture"))
+
+# summary required to make three pie charts for water withdrawals by categories for SW, gw, and total
+cat_source_combined_no_power_pie_summary <- no_power_cat_summary2 %>% 
+  dplyr::select(c(Category, Percentage_GW, Percentage_SW, Percentage_Total)) %>%
+  dplyr::filter(Category!="Total") %>%
+  tidyr::pivot_longer(cols = 2:4, names_to = "Source", values_to = "Value") %>%
+  dplyr::mutate(Source = dplyr::recode(Source, "Percentage_GW"="Groundwater"),
+                Source = dplyr::recode(Source, "Percentage_SW"="Surface Water"),
+                Source = dplyr::recode(Source, "Percentage_Total"="Total"))
+
+cat_source_no_power_combined_pie_chart <- ggplot2::ggplot(cat_source_combined_no_power_pie_summary, aes("", Value, group = Category, fill = Category)) + 
+  geom_col(stat = "identity")+
+  coord_polar(theta = "y") + 
+  facet_wrap(~Source, ncol = 3)+
+  theme(strip.text.y = element_text(size = 30))+
+  scale_fill_manual(values = c("forestgreen","cyan3","lawngreen","orange", "yellow","darkblue","red3")) + 
+  theme_void()+
+  theme(legend.position = "bottom", legend.text = element_text(size = 20), plot.title = element_text(size = 20, hjust = 0.5),
+        legend.title = element_blank())+
+  theme(panel.background = element_blank())+
+  theme(plot.background = element_rect(fill = "white"))+
+  theme(strip.text.x = element_text(size = 20))
+
+```
+
+```{r combine-bar-plots-nopower, fig.cap= paste0('\\textbf{Figure 3.} ',y, ' Water withdrawals excluding Hydroelectric and Thermoelectric Power in the ', basin, ' basin by category and source, Groundwater \\textbf{(A)}, Surface Water \\textbf{(B)}, and Total \\textbf{(C)}.'), fig.align="center", echo=FALSE, fig.width=12,fig.height=9}
+
+sw_no_power_bar <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Surface_water, Percentage_SW) %>%
+  dplyr::filter(Category!="Total") 
+
+sw_no_power_bar_plot <- cat_bar_plot(dat = sw_no_power_bar , y_col="Surface_water", x_col="Category", percent_label_col = "Percentage_SW")+
+  geom_bar(stat = "identity", fill = "steelblue4", width = 0.5)+
+  labs(y= "Surface Water withdrawals (MGD)", x = "")
+
+
+gw_no_power_bar <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Groundwater, Percentage_GW) %>%
+  dplyr::filter(Category!="Total") 
+
+gw_no_power_bar_plot <- cat_bar_plot(dat = gw_no_power_bar, y_col="Groundwater", x_col="Category", percent_label_col = "Percentage_GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 0.5)+
+  labs(y= "Groundwater withdrawals (MGD)", x = "")
+
+total_no_power_bar  <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Total_MGD, Percentage_Total) %>%
+  dplyr::filter(Category!="Total")
+
+total_no_power_bar_plot <- cat_bar_plot(dat = total_no_power_bar, y_col="Total_MGD", x_col="Category", percent_label_col = "Percentage_Total")+
+  geom_bar(stat = "identity", fill = "black", width = 0.5)+
+  labs(y= "Total water withdrawals (MGD)", x = "")
+
+ggarrange(gw_no_power_bar_plot,sw_no_power_bar_plot,total_no_power_bar_plot,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+```{r trend-period}
+t_y1 <- 2011
+t_y2 <- 2021
+```
+
+\newpage
+
+# Appendix A. Water Withdrawal Trends by Category and Source (`r t_y1`-`r t_y2`)
+
+
+## A.1 Limitations of the SCDHEC Database
+
+|       Although the quality of water-use data significantly improved after 2000, the database is not a complete and accurate representation of total water withdrawals in the state. Limitations of the SCDHEC database include:
+1.	Withdrawals from private domestic wells, small surface water irrigation ponds, and any other water withdrawals less than the reporting threshold of 3 MGM are excluded from the SCDHEC’s water-use database (SCDHEC Water Use Report, 2020)$^1$.
+2.	After passing of the South Carolina Surface Water Withdrawal, Permitting, Use, and Reporting Act in 2011, several facilities withdrawing less than the threshold value were not required to report their withdrawals to SCDHEC. 
+3.	Errors in reported water withdrawals or errors introduced during data input.
+4.	Some users fail to add metadata such as longitude, latitude, county, and basin information for a surface water intake or groundwater well withdrawal. This can lead to some inaccuracies in the dataset.
+5.	Increasing trends in reported water withdrawals for some categories (Agriculture, for example) may in part be due to increased reporting compliance over the analysis period (`r t_y1` - `r t_y2`).
+
+Owing to the above limitations, caution is warranted when interpreting trends in reported withdrawals from the SCDHEC water-use database.
+
+## A.2 Water Withdrawal for All Categories Combined, Excluding Hydroelectric Power
+
+```{r trend-bar-plot-all_cat_noPH,fig.cap= paste0('\\textbf{Figure A1.} Annual water withdrawals excluding Hydroelectric Power in the ',basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+trend_year1 <- 2011:2021
+
+basin_total_wu_no_ph_summary_2011_2021 <- trend_plot_summary(water_use_data = wu_monit_2000_2021, trend_year=trend_year1, basin=basin,category = c("Thermoelectric", "Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+basin_total_wu_no_ph_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_sw_wu_no_ph_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_gw_wu_no_ph_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_gw_wu_no_ph_plot_2011_2021,basin_sw_wu_no_ph_plot_2011_2021,basin_total_wu_no_ph_plot_2011_2021,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+
+## A.3 Water Withdrawal for All Categories Combined, Excluding Hydroelectric and Thermoelectric Power
+
+```{r trend-bar-plot-all_cat_nopower,fig.cap= paste0('\\textbf{Figure A2.} Annual water withdrawals excluding Hydroelectric and Thermoelectric Power in the ',basin, ' basin for remaining categories combined and by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_total_wu_no_power_summary_2011_2021 <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin,category = c("Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+basin_total_wu_no_power_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_sw_wu_no_power_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_gw_wu_no_power_plot_2011_2021 <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_gw_wu_no_power_plot_2011_2021,basin_sw_wu_no_power_plot_2011_2021,basin_total_wu_no_power_plot_2011_2021,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.4 Water Withdrawal for Thermoelectric Power
+
+```{r trend-TH_bar-plot,fig.cap= paste0('\\textbf{Figure A3.} Annual water withdrawals in the ',basin, ' basin for Thermoelectric Power by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_TH_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin,category = "Thermoelectric",source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+basin_TH_plot_2011_2021 <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_TH_SW_plot_2011_2021 <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_TH_GW_plot_2011_2021  <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_TH_GW_plot_2011_2021 ,basin_TH_SW_plot_2011_2021 ,basin_TH_plot_2011_2021,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.5 Water Withdrawal for Water Supply
+
+```{r trend-WS_bar-plot,fig.cap= paste0('\\textbf{Figure A4.} Annual water withdrawals in the ',req_basin, ' basin for Water Supply by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_WS_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin ,category = "Water Supply",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+# knitr::kable(basin_WS_summary_2011_2021 ,
+#              caption = '\\textbf{Table 10.} Water withdrawal (MGD) for thermoelectric powerin the Pee Dee basin (2011-2021)',
+#              digits = 1, align = c("l", rep("r",3)), format.args = list(scientific = FALSE))
+
+basin_WS_plot_2011_2021  <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_WS_SW_plot_2011_2021  <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_WS_GW_plot_2011_2021  <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_WS_GW_plot_2011_2021 ,basin_WS_SW_plot_2011_2021 ,basin_WS_plot_2011_2021 ,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.6 Water Withdrawal for Industry
+
+```{r trend-IN_bar-plot,fig.cap= paste0('\\textbf{Figure A5.} Annual water withdrawals in the ',basin, ' basin for Industry by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_IN_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin="Pee Dee",category = "Industry",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+basin_IN_plot_2011_2021  <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_IN_SW_plot_2011_2021  <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_IN_GW_plot_2011_2021  <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_IN_GW_plot_2011_2021 ,basin_IN_SW_plot_2011_2021 ,basin_IN_plot_2011_2021 ,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.7 Water Withdrawal for Agriculture
+
+```{r trend-Ag_bar-plot,fig.cap= paste0('\\textbf{Figure A6.} Annual water withdrawals in the ',basin, ' basin for Agriculture by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_Ag_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin ,category = "Agriculture",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+basin_Ag_plot_2011_2021  <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_Ag_SW_plot_2011_2021  <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_Ag_GW_plot_2011_2021  <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_Ag_GW_plot_2011_2021,basin_Ag_SW_plot_2011_2021 ,basin_Ag_plot_2011_2021 ,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.8 Water Withdrawal for Golf Course
+
+```{r trend-GC_bar-plot,fig.cap= paste0('\\textbf{Figure A7.} Annual water withdrawals in the ',basin, ' basin for Golf Course by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_GC_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin ,category = "Golf Course",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+basin_GC_plot_2011_2021  <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+basin_GC_SW_plot_2011_2021  <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_GC_GW_plot_2011_2021  <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+ggarrange(basin_GC_GW_plot_2011_2021 ,basin_GC_SW_plot_2011_2021 ,basin_GC_plot_2011_2021,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.9 Water Withdrawal for Mining
+
+```{r trend-MI_bar-plot,fig.cap= paste0('\\textbf{Figure A8.} Annual water withdrawals in the ',basin, ' basin for Mining by source. Groundwater (GW) \\textbf{(A)}, Surface Water (SW) \\textbf{(B)}, and Total \\textbf {(C)}.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=11}
+
+basin_MI_summary_2011_2021 <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year=trend_year1, basin=basin, category = "Mining",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L)) %>% 
+  replace(is.na(.), 0) # without the replace NA with 0 statement, it only plots 
+# for the available data years. This is a fix to include all years on the x-axis. 
+
+basin_MI_plot_2011_2021 <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")
+
+
+
+basin_MI_SW_plot_2011_2021  <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")
+
+basin_MI_GW_plot_2011_2021  <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+
+
+
+ggarrange(basin_MI_GW_plot_2011_2021 ,basin_MI_SW_plot_2011_2021 ,basin_MI_plot_2011_2021 ,ncol=1, nrow = 3, labels = c("A","B", "C"), widths = c(5,5,5), heights = c(5,5,5), font.label=list(color="black",size=15))
+grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+## A.10 Water Withdrawal for Aquaculture
+
+```{r trend-AQ_bar-plot,fig.cap= paste0('\\textbf{Figure A9.} Annual Groundwater (GW) withdrawals in the ',basin, ' basin for Aquculture. No withdrawals from Surface water source.'), fig.align="center", echo=FALSE, fig.width=10, fig.height=4}
+basin_AQ_summary_2011_2021  <- wu_monit_2000_2021 %>%
+  dplyr::filter(CategoryCode=="AQ",Spatial_basin == basin, year %in% (2011:2021)) %>%
+  dplyr::select(year,Total_MGD) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L)) %>%
+  dplyr::rename(Total=`Total_MGD`)
+
+
+basin_AQ_plot_2011_2021 <- trend_plot(dat=basin_AQ_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+basin_AQ_plot_2011_2021
+# ggarrange(basin_AQ_plot_2011_2021,ncol=1, nrow = 1, widths = 5, heights = 5, font.label=list(color="black",size=15))
+# grid::grid.rect(gp = gpar(col = "black", fill = NA))
+
+```
+
+\newpage
+
+# Appendix B. Water Withdrawal by Subbasins (`r y`)
+
+<!-- ### Subbasin Analysis -->
+
+```{r add basin-subbasins, eval=T, results="hide"}
+subbasins <- sf::st_read("D:/scwaterwithdrawaldata/data_DHEC/GIS_data/PD_watershed.shp") %>% 
+  st_transform(st_crs(SC_boundary_new)) %>%
+  dplyr::rename(Subbasin = Name) %>%
+  dplyr::mutate(Subbasin = replace(Subbasin, Subbasin == "Yadkin-Pee Dee", "Pee Dee")) %>%
+  dplyr::select(Subbasin, geometry)
+
+```
+
+```{r add subbasin column, eval=T, results="hide"}
+wu_monit_2000_2021_sf <- wu_monit_2000_2021 %>% 
+  dplyr::filter(Spatial_basin== basin) %>%
+  dplyr::filter(lat != 0 & long != 0) %>% sf::st_as_sf(coords= c("long", "lat"),
+                                crs= st_crs(SC_boundary_new), agr= "identity")
+
+wu_monit_2000_2021_sf_SW <- wu_monit_2000_2021 %>% 
+  dplyr::filter(Spatial_basin==basin, Water_SourceCode=="S", year==y) %>%
+  dplyr::filter(lat != 0 & long != 0) %>% sf::st_as_sf(coords= c("long", "lat"),
+                                crs= st_crs(SC_boundary_new), agr= "identity")
+
+plot_2021_SW_PD <- ggplot2::ggplot() + 
+     ggplot2::geom_sf(data = subbasins) +
+     ggplot2::geom_sf(data = wu_monit_2000_2021_sf_SW) +
+     ggplot2::coord_sf() +
+  ggplot2::ggtitle("2021 SW wu intakes on subbasins")
+  
+# get subbasin names from spatial joins.
+joined_subbasin_wu <- sf::st_join(wu_monit_2000_2021_sf, subbasins)
+# write_xlsx(joined_subbasin_wu, "D:\\scwaterwithdrawaldata\\PD_WU_subbasin.xlsx")
+
+```
+
+```{r subbasin_total_withdrawal_table_no_ph, eval=T}
+#no mining in the basin for 2021
+
+no_ph_subbasin_cat_summary <- joined_subbasin_wu %>% st_drop_geometry() %>%
+  dplyr::filter(year==y, CategoryCode != "AQ") %>%
+  dplyr::group_by(Subbasin, Category) %>%
+  dplyr::summarise(MGD = sum(Total_MGD)) %>%
+  dplyr::mutate(Category=recode(Category,`Nuclear Power`='Thermoelectric'))%>%
+  dplyr::mutate(Category=recode(Category,`Thermal Power`='Thermoelectric')) %>%
+  tidyr::spread(Category, MGD) %>%
+  dplyr::mutate(.,Perc_PT = ((Thermoelectric/sum(.$Thermoelectric, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_WS = ((`Water Supply`/sum(.$`Water Supply`, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_IN = ((Industry/sum(.$Industry, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_GC = ((Golf/sum(.$Golf, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_Ag = ((Agriculture/sum(.$Agriculture, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_MI = ((Mining/sum(.$Mining, na.rm = TRUE))*100)) %>%
+  dplyr::relocate(Thermoelectric, .after = `Subbasin`) %>%
+  dplyr::relocate(Perc_PT, .after = `Thermoelectric`)%>%
+  dplyr::relocate(`Water Supply`, .after = `Perc_PT`)%>%
+  dplyr::relocate(Perc_WS, .after = `Water Supply`) %>% 
+  dplyr::relocate(`Industry`, .after = `Perc_WS`)%>%
+  dplyr::relocate(Perc_IN, .after = Industry) %>%
+  dplyr::relocate(`Golf`, .after = `Perc_IN`) %>%
+  dplyr::relocate(Perc_GC, .after = Golf) %>%
+  dplyr::relocate(`Agriculture`, .after = `Perc_GC`) %>%
+  dplyr::relocate(Perc_Ag, .after = Agriculture) %>%
+  dplyr::relocate(`Mining`, .after = `Perc_Ag`) %>%
+  dplyr::relocate(Perc_MI, .after = Mining) %>%
+  janitor::adorn_totals("row", na.rm = TRUE)
+
+kableExtra::kbl(no_ph_subbasin_cat_summary,
+             caption = paste0('\\textbf{Table B1.} ',y,' Total water withdrawals in the ', basin, ' by subbasin and category'),escape = FALSE, col.names = c("Subbasin", "PT (MGD)","$\\%$" , "WS (MGD)", "$\\%$","IN (MGD)", "$\\%$", "GC (MGD)","$\\%$", "AG (MGD)", "$\\%$", "MI (MGD)","$\\%$"), digits = 1, format.args = list(big.mark = ",",scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",13))) %>%
+   kableExtra::column_spec(2:15, width ="0.8 cm", latex_valign = "m") %>%
+   # kableExtra::add_header_above(c(" "=1, "Surface Water"=10)) %>%
+   kableExtra::row_spec(5, hline_after = TRUE) %>%
+   kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+
+```{r subbasin_total_SW_table_no_ph, eval=T}
+#no mining in the basin for 2021
+
+no_ph_SW_subbasin_cat_summary <- joined_subbasin_wu %>% st_drop_geometry() %>%
+  dplyr::filter(year==y, CategoryCode != "AQ", Water_SourceCode == "S") %>%
+  dplyr::group_by(Subbasin, Category) %>%
+  dplyr::summarise(MGD = sum(Total_MGD)) %>%
+  dplyr::mutate(Category=recode(Category,`Nuclear Power`='Thermoelectric'))%>%
+  dplyr::mutate(Category=recode(Category,`Thermal Power`='Thermoelectric')) %>%
+  tidyr::spread(Category, MGD) %>%
+  dplyr::mutate(.,Perc_PT = ((Thermoelectric/sum(.$Thermoelectric, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_WS = ((`Water Supply`/sum(.$`Water Supply`, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_IN = ((Industry/sum(.$Industry, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_GC = ((Golf/sum(.$Golf, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_Ag = ((Agriculture/sum(.$Agriculture, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_MI = ((Mining/sum(.$Mining, na.rm = TRUE))*100)) %>%
+  dplyr::relocate(Thermoelectric, .after = `Subbasin`) %>%
+  dplyr::relocate(Perc_PT, .after = `Thermoelectric`)%>%
+  dplyr::relocate(`Water Supply`, .after = `Perc_PT`)%>%
+  dplyr::relocate(Perc_WS, .after = `Water Supply`) %>% 
+  dplyr::relocate(`Industry`, .after = `Perc_WS`)%>%
+  dplyr::relocate(Perc_IN, .after = Industry) %>%
+  dplyr::relocate(`Golf`, .after = `Perc_IN`) %>%
+  dplyr::relocate(Perc_GC, .after = Golf) %>%
+  dplyr::relocate(`Agriculture`, .after = `Perc_GC`) %>%
+  dplyr::relocate(Perc_Ag, .after = Agriculture) %>%
+  dplyr::relocate(`Mining`, .after = `Perc_Ag`) %>%
+  dplyr::relocate(Perc_MI, .after = Mining) %>%
+  janitor::adorn_totals("row", na.rm = TRUE)
+
+kableExtra::kbl(no_ph_SW_subbasin_cat_summary,
+             caption = paste0('\\textbf{Table B2.} ',y,' Total surface water withdrawals in the ', basin, ' by subbasin and category'),escape = FALSE, col.names = c("Subbasin", "PT (MGD)","$\\%$" , "WS (MGD)", "$\\%$","IN (MGD)", "$\\%$", "GC (MGD)","$\\%$", "Ag (MGD)", "$\\%$", "MI (MGD)","$\\%$"), digits = 1, format.args = list(big.mark = ",",scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",13))) %>%
+   kableExtra::column_spec(2:15, width ="0.8 cm", latex_valign = "m") %>%
+   # kableExtra::add_header_above(c(" "=1, "Surface Water"=10)) %>%
+   kableExtra::row_spec(5, hline_after = TRUE) %>%
+   kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r subbasin_total_GW_table_no_ph, eval=T}
+#no mining in the basin for 2021
+
+no_ph_GW_subbasin_cat_summary <- joined_subbasin_wu %>% st_drop_geometry() %>%
+  dplyr::filter(year==y, CategoryCode != "AQ", Water_SourceCode == "G") %>%
+  dplyr::group_by(Subbasin, Category) %>%
+  dplyr::summarise(MGD = sum(Total_MGD)) %>%
+  dplyr::mutate(Category=recode(Category,`Nuclear Power`='Thermoelectric'))%>%
+  dplyr::mutate(Category=recode(Category,`Thermal Power`='Thermoelectric')) %>%
+  tidyr::spread(Category, MGD) %>%
+  dplyr::mutate(.,Perc_PT = ((Thermoelectric/sum(.$Thermoelectric, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_WS = ((`Water Supply`/sum(.$`Water Supply`, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_IN = ((Industry/sum(.$Industry, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_GC = ((Golf/sum(.$Golf, na.rm = TRUE))*100)) %>%
+  dplyr::mutate(.,Perc_Ag = ((Agriculture/sum(.$Agriculture, na.rm = TRUE))*100)) %>%
+  dplyr::relocate(Thermoelectric, .after = `Subbasin`) %>%
+  dplyr::relocate(Perc_PT, .after = `Thermoelectric`)%>%
+  dplyr::relocate(`Water Supply`, .after = `Perc_PT`)%>%
+  dplyr::relocate(Perc_WS, .after = `Water Supply`) %>% 
+  dplyr::relocate(`Industry`, .after = `Perc_WS`)%>%
+  dplyr::relocate(Perc_IN, .after = Industry) %>%
+  dplyr::relocate(`Golf`, .after = `Perc_IN`) %>%
+  dplyr::relocate(Perc_GC, .after = Golf) %>%
+  dplyr::relocate(`Agriculture`, .after = `Perc_GC`) %>%
+  dplyr::relocate(Perc_Ag, .after = Agriculture) %>%
+  janitor::adorn_totals("row", na.rm = TRUE)
+
+kableExtra::kbl(no_ph_GW_subbasin_cat_summary,
+             caption = paste0('\\textbf{Table B3.} ',y,' Total groundwater withdrawals in the ', basin, ' by subbasin and category'),escape = FALSE, col.names = c("Subbasin", "PT (MGD)","$\\%$" , "WS (MGD)", "$\\%$","IN (MGD)", "$\\%$", "GC (MGD)","$\\%$", "Ag (MGD)", "$\\%$"), digits = 1, format.args = list(big.mark = ",",scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",10))) %>%
+   kableExtra::column_spec(2:12, width ="0.8 cm", latex_valign = "m") %>%
+   # kableExtra::add_header_above(c(" "=1, "Surface Water"=10)) %>%
+   kableExtra::row_spec(5, hline_after = TRUE) %>%
+   kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r subbasins, eval=T}
+subbasin1="Pee Dee"
+subbasin2 = "Lynches"
+subbasin3 = "Black"
+subbasin4 = "Little Pee Dee"
+subbasin5 = "Waccamaw"
+```
+
+\newpage
+## Pee Dee River Subbasin
+```{r PD-no-ph-source-table}
+
+no_PH_source_PD_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin1, category_to_exclude = "Hydro Power") %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_PH_source_PD_summary,
+             caption = paste0('\\textbf{Table B4.} ',y,' Water withdrawals in the Pee Dee River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r PD-no-ph-cat-table}
+
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+PD_cat_no_PH <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin1, category_to_exclude = "PH")
+  
+
+kableExtra::kbl(PD_cat_no_PH,
+             caption = paste0('\\textbf{Table B5.} ',y,' Water withdrawals in the Pee Dee River subbasin by category and source.'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(6, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+```{r PD-no-power-source-table}
+cat_ex <- c("Hydro Power", "Nuclear Power", "Thermal Power")
+
+no_power_source_PD_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin1, category_to_exclude = cat_ex) %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_power_source_PD_summary,
+             caption = paste0('\\textbf{Table B6.} ',y,' Water withdrawals excluding Thermoelectric Power in the Pee Dee River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+
+```{r PD-no-power-cat-table}
+cat_ex <- c("Hydro Power", "Nuclear Power", "Thermal Power")
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+PD_cat_no_power <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin1, category_to_exclude = cat_ex)
+  
+
+kableExtra::kbl(PD_cat_no_power,
+             caption = paste0('\\textbf{Table B7.} ',y,' Water withdrawals excluding Thermoelectric Power in the Pee Dee River subbasin by category and source.'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(5, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+\newpage
+## Lynches River Subbasin
+```{r Lynches-no-ph-source-table}
+
+no_PH_source_Lynches_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin2, category_to_exclude = "Hydro Power") %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_PH_source_Lynches_summary,
+             caption = paste0('\\textbf{Table B8.} ',y,' Water withdrawals in the Lynches River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r Lynches-no-ph-cat-table}
+
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+Lynches_cat_no_PH <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin2, category_to_exclude = "PH")
+  
+
+kableExtra::kbl(Lynches_cat_no_PH,
+             caption = paste0('\\textbf{Table B9.} ',y,' Water withdrawals in the Lynches River subbasin by category and source.'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(5, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+## Black River Subbasin
+```{r Black-no-ph-source-table}
+
+no_PH_source_Black_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin3, category_to_exclude = "Hydro Power") %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_PH_source_Black_summary,
+             caption = paste0('\\textbf{Table B10.} ',y,' Water withdrawals in the Black River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r Black-no-ph-cat-table}
+
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+Black_R_cat_no_PH <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin3, category_to_exclude = "PH")
+  
+
+kableExtra::kbl(Black_R_cat_no_PH,
+             caption = paste0('\\textbf{Table B11.} ',y,' Water withdrawals in the Black River subbasin by category and source.'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(5, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+\newpage
+## Little Pee Dee River Subbasin
+```{r Little_PD-no-ph-source-table}
+
+no_PH_source_Little_PD_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin4, category_to_exclude = "Hydro Power") %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_PH_source_Little_PD_summary,
+             caption = paste0('\\textbf{Table B12.} ',y,' Water withdrawals in the Little Pee Dee River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 2,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r Little_PD-no-ph-cat-table}
+
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+Little_PD_cat_no_PH <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin4, category_to_exclude = "PH")
+  
+
+kableExtra::kbl(Little_PD_cat_no_PH,
+             caption = paste0('\\textbf{Table B13.} ',y,' Water withdrawals in the Little Pee Dee River subbasin by category and source.'),escape = FALSE, col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"), digits = 2, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+## Waccamaw River Subbasin
+```{r Waccamaw-no-ph-source-table}
+
+no_PH_source_Waccamaw_summary <- pie_source_summary_subbasin(water_use_data = joined_subbasin_wu, req_year=y, basin=basin, subbasin = subbasin5, category_to_exclude = "Hydro Power") %>%
+  st_drop_geometry() %>%
+  dplyr::select(!(labels)) %>%
+  dplyr::mutate(percentage = 100*(percentage)) %>%
+  janitor::adorn_totals("row", na.rm = TRUE) 
+
+kableExtra::kbl(no_PH_source_Waccamaw_summary,
+             caption = paste0('\\textbf{Table B14.} ',y,' Water withdrawals in the Waccamaw River subbasin by source.'), col.names = c("Source", "Withdrawals (MGD)", "$\\%$ of total withdrawals"), escape = FALSE, digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "",align = c("l", rep("r",2))) %>%
+  kableExtra::column_spec(2:3, width ="3 cm", latex_valign = "m") %>%
+  kableExtra::row_spec(2, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+```
+
+```{r Waccamaw-no-ph-cat-table}
+
+joined_subbasin_wu <- joined_subbasin_wu %>% st_drop_geometry()
+
+Waccamaw_cat_no_PH <- pie_cat_source_summary_subbasin(water_use_data=joined_subbasin_wu,req_year=y,
+                                                    basin = basin, subbasin=subbasin5, category_to_exclude = "PH")
+  
+
+kableExtra::kbl(Waccamaw_cat_no_PH,
+             caption = paste0('\\textbf{Table B15.} ',y,' Water withdrawals in the Waccamaw River subbasin by category and source.'), col.names = c("Category", "Withdrawals (MGD)","$\\%$ of total withdrawals" , "Withdrawals (MGD)", "$\\%$ of total withdrawals","Withdrawals (MGD)", "$\\%$ of total withdrawals"),escape = FALSE, digits = 1, format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "", align = c("l", rep("r",7))) %>%
+  kableExtra::column_spec(2:8, width ="2 cm") %>% 
+  kableExtra::add_header_above(c(" "=1, "Groundwater"=2, "Surface Water"=2, "Total"=2)) %>%
+  # kableExtra::add_footnote("SW: Surface Water GW: Groundwater") %>%
+  kableExtra::row_spec(3, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+```
+
+\newpage
+
+## References
+
+1. Craig,B., and Monroe,L.A., 2020, South Carolina Department of Health and Environmental Control (SCDHEC) Water Use Report, 87 p. (https://scdhec.gov/surface-groundwater-annual-water-use-report) 
+
+
+2. Wachob, A., Park, D.A., and Newcome R.Jr., 2009, South Carolina State Water Assessment, second edition: South Carolina Department of Natural Resources, 408 p.
+(https://hydrology.dnr.sc.gov/pdfs/assessment/SC_Water_Assessment_2.pdf)
+  
+
+```{r export_plots, eval=FALSE}
+###### SW by categories no PH
+pie_cat_no_PH_SW <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power", source = "S")
+
+
+SW_cat_no_PH <- pie_category_graph(pie_cat_no_PH_SW)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Thermoelectric"="darkblue","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Surface Water withdrawal by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+SW_cat_no_PH
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_cat_no_PH.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+########### GW by categories no PH
+pie_cat_no_PH_GW <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power", source = "G")
+
+GW_cat_no_PH<- pie_category_graph(pie_cat_no_PH_GW)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Thermoelectric"="darkblue","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Groundwater withdrawal by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+GW_cat_no_PH
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_cat_no_PH.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+########### Total by categories no PH
+
+pie_cat_no_PH_total <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude ="Hydro Power", source = c("S", "G"))
+
+total_cat_no_PH <- pie_category_graph(pie_cat_no_PH_total)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Thermoelectric"="darkblue","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Total water withdrawal by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+total_cat_no_PH
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "total_cat_no_PH.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+######################### Water withdrawal by source no PH 
+
+Pee_Dee_pie_summary_noPH <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude = "Hydro Power")
+
+WU_source_noPH <- ggplot2::ggplot(data=Pee_Dee_pie_summary_noPH, aes(x = "", y = Total_MGD , fill = `Total_water_distribution`))+
+  geom_col() +
+  scale_fill_manual(values = c("Surface Water" = "steelblue4","Groundwater"= "springgreen3"),
+                    labels = c("SW: 88%","GW: 12%"))+
+  coord_polar(theta = "y") +
+  theme_void()+
+  theme(legend.position = "right",
+        legend.text = element_text(size = 10),
+        legend.title = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "pt"))+
+  ggtitle("Water withdrawal by source, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+WU_source_noPH
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "WU_source_noPH.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+######### Bar plots WU by categories, excluding PH
+
+sw_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Surface_water, Percentage_SW) %>%
+  dplyr::filter(Category!="Total") 
+
+SW_no_ph_bar_plot <- cat_bar_plot(dat = sw_no_ph_bar , y_col="Surface_water", x_col="Category", percent_label_col = "Percentage_SW")+
+  geom_bar(stat = "identity", fill = "steelblue4", width = 0.5)+
+  labs(y= "Surface water withdrawals (MGD)", x = "")+
+  ggtitle("Surface Water withdrawals by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_no_ph_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+gw_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Groundwater, Percentage_GW) %>%
+  dplyr::filter(Category!="Total") 
+
+GW_no_ph_bar_plot <- cat_bar_plot(dat = gw_no_ph_bar, y_col="Groundwater", x_col="Category", percent_label_col = "Percentage_GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 0.5)+
+  labs(y= "Groundwater withdrawals (MGD)", x = "")+
+  ggtitle("Groundwater withdrawals by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_no_ph_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+total_no_ph_bar <- no_PH_cat_summary2 %>%
+  dplyr::select(Category, Total_MGD, Percentage_Total) %>%
+  dplyr::filter(Category!="Total")
+
+Total_no_ph_bar_plot <- cat_bar_plot(dat = total_no_ph_bar, y_col="Total_MGD", x_col="Category", percent_label_col = "Percentage_Total")+
+  geom_bar(stat = "identity", fill = "black", width = 0.5)+
+  labs(y= "Total water withdrawals (MGD)", x = "")+
+  ggtitle("Total water withdrawals by categories, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_no_ph_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+################### Water withdrawal by source no Power
+
+Pee_Dee_pie_summary_nopower <- pie_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude = c("Hydro Power","Thermal Power", "Nuclear Power"))
+
+WU_source_no_power <- ggplot2::ggplot(data=Pee_Dee_pie_summary_nopower, aes(x = "", y = Total_MGD , fill = `Total_water_distribution`))+
+  geom_col() +
+  scale_fill_manual(values = c("Surface Water" = "steelblue4","Groundwater"= "springgreen3"),
+                    labels = c("SW: 56%","GW: 44%"))+
+  coord_polar(theta = "y") +
+  theme_void()+
+  theme(legend.position = "right",
+        legend.text = element_text(size = 10),
+        legend.title = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "pt"))+
+  ggtitle("Water withdrawal by source, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.1))
+  
+WU_source_no_power
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "WU_source_no_power.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+###### SW by categories no power
+pie_cat_no_power_SW <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Hydro Power","Thermoelectric"), source = "S")
+
+
+SW_cat_no_power <- pie_category_graph(pie_cat_no_power_SW)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Surface Water withdrawal by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+SW_cat_no_power
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_cat_no_power.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+###### GW by categories no power
+
+pie_cat_no_power_GW <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Hydro Power","Thermoelectric"), source = "G")
+
+GW_cat_no_power <- pie_category_graph(pie_cat_no_power_GW)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Groundwater withdrawal by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+GW_cat_no_power
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_cat_no_power.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+###### Total by categories no power
+
+pie_cat_no_power_total <- pie_category_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Hydro Power","Thermoelectric"), source = c("S", "G"))
+
+total_cat_no_power <- pie_category_graph(pie_cat_no_power_total)+
+  scale_fill_manual(values = c("Agriculture"="forestgreen","Aquaculture"="cyan3","Golf Course"= "lawngreen", "Industry"="orange","Mining"="yellow","Water Supply"="red3"))+
+   theme(legend.position = "right", legend.text = element_text(size = 9), plot.title = element_text(size = 11, hjust = 0.5),
+        legend.title = element_blank())+
+  ggtitle("Total water withdrawal by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = -0.1))
+  
+total_cat_no_power
+
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "total_cat_no_power.png"), width = 5, height = 5, dpi = 300, units = "in", device = 'png')
+
+######### Bar plots WU by categories, excluding power
+no_power_cat_summary2 <- pie_cat_source_summary(water_use_data = wu_monit_2000_2021, req_year=y, basin=basin, category_to_exclude =c("Thermal Power", "Nuclear Power"))
+
+
+sw_no_power_bar <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Surface_water, Percentage_SW) %>%
+  dplyr::filter(Category!="Total") 
+
+SW_no_power_bar_plot <- cat_bar_plot(dat = sw_no_power_bar , y_col="Surface_water", x_col="Category", percent_label_col = "Percentage_SW")+
+  geom_bar(stat = "identity", fill = "steelblue4", width = 0.5)+
+  labs(y= "Surface Water withdrawals (MGD)", x = "")+
+  ggtitle("Surface Water withdrawals by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_no_power_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+gw_no_power_bar <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Groundwater, Percentage_GW) %>%
+  dplyr::filter(Category!="Total") 
+
+GW_no_power_bar_plot <- cat_bar_plot(dat = gw_no_power_bar, y_col="Groundwater", x_col="Category", percent_label_col = "Percentage_GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 0.5)+
+  labs(y= "Groundwater withdrawals (MGD)", x = "")+
+  ggtitle("Groundwater withdrawals by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_no_power_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+total_no_power_bar  <- no_power_cat_summary2 %>%
+  dplyr::select(Category, Total_MGD, Percentage_Total) %>%
+  dplyr::filter(Category!="Total")
+
+Total_no_power_bar_plot <- cat_bar_plot(dat = total_no_power_bar, y_col="Total_MGD", x_col="Category", percent_label_col = "Percentage_Total")+
+  geom_bar(stat = "identity", fill = "black", width = 0.5)+
+  labs(y= "Total water withdrawals (MGD)", x = "")+
+  ggtitle("Total water withdrawals by categories, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_no_power_bar_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+############## Trend plots
+
+# All categories combined (no PH)
+basin_total_wu_no_ph_summary_2011_2021 <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = c("Thermoelectric", "Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+Total_2011_2021_no_PH <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total water withdrawals, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_2011_2021_no_PH.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+SW_2011_2021_plot_no_PH <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_2011_2021_plot_no_PH.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+GW_2011_2021_plot_no_PH <- trend_plot(dat=basin_total_wu_no_ph_summary_2011_2021, x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_2011_2021_plot_no_PH.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png') 
+
+
+# All categories combined (No Power)
+
+basin_total_wu_no_power_summary_2011_2021 <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = c("Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+Total_2011_2021_plot_no_power <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total water withdrawals, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_2011_2021_plot_no_power.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+SW_2011_2021_plot_no_power <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "SW_2011_2021_plot_no_power.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+GW_2011_2021_plot_no_power <- trend_plot(dat=basin_total_wu_no_power_summary_2011_2021, x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GW_2011_2021_plot_no_power.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+# All categories combined (no PH) 2002-2021
+PeeDee_total_2002_2021_noPH <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year2, basin=basin,category = c("Thermoelectric", "Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+Total_2002_2021_no_PH <- trend_plot(dat=PeeDee_total_2002_2021_noPH, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total water withdrawals, excluding Hydroelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_2002_2021_no_PH.png"), width = 15, height = 4, dpi = 300, units = "in", device = 'png')
+
+# All categories combined (no power) 2002-2021
+
+PeeDee_total_2002_2021_nopower <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year2, basin=basin,category = c("Water Supply", "Industry", "Agriculture", "Mining", "Golf Course", "Aquaculture"),source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+Total_2002_2021_no_power <- trend_plot(dat=PeeDee_total_2002_2021_nopower, x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total water withdrawals, excluding Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "Total_2002_2021_no_power.png"), width = 15, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+#Thermoelectric
+
+basin_TH_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Thermoelectric",source = c("S","G")) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+
+TH_total_2011_2021_plot <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total withdrawals for Thermoelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "TH_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+TH_SW_2011_2021_plot <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface water withdrawals for Thermoelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "TH_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+TH_GW_2011_2021_plot <- trend_plot(dat=basin_TH_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals for Thermoelectric Power")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "TH_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+# Water Supply
+basin_WS_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Water Supply",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+WS_total_2011_2021_plot <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total water withdrawals for Water Supply")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "WS_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+WS_SW_2011_2021_plot <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals for Water Supply")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "WS_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+WS_GW_2011_2021_plot <- trend_plot(dat=basin_WS_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")
+  ggtitle("Groundwater withdrawals for Water Supply")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "WS_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+# Industry
+
+basin_IN_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Industry",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+IN_total_2011_2021_plot <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total withdrawals for Industry")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "IN_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+IN_SW_2011_2021_plot <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface water withdrawals for Industry")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "IN_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+IN_GW_2011_2021_plot <- trend_plot(dat=basin_IN_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals for Industry")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "IN_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+#Agriculture
+
+basin_Ag_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Agriculture",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+  
+
+AG_total_2011_2021_plot <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total withdrawals for Agriculture")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "AG_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+AG_SW_2011_2021_plot <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals for Agriculture")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "AG_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+AG_GW_2011_2021_plot <- trend_plot(dat=basin_Ag_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals for Agriculture")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "AG_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+# Mining
+
+basin_MI_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Mining",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+MI_total_2011_2021_plot <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total withdrawals for Mining")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "MI_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+MI_SW_2011_2021_plot <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals for Mining")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "MI_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+MI_GW_2011_2021_plot <- trend_plot(dat=basin_MI_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals for Mining")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "MI_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+# Golf Course
+
+basin_GC_summary_2011_2021  <- trend_plot_summary(water_use_data = wu_monit_2000_2021,trend_year = trend_year1, basin=basin,category = "Golf Course",source = c("S","G"))%>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L))
+
+GC_total_2011_2021_plot <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "black", width = 50)+
+  ylab("Total Withdrawals (MGD)")+
+  ggtitle("Total withdrawals for Golf Course")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GC_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+GC_SW_2011_2021_plot <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="SW")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("SW Withdrawals (MGD)")+
+  ggtitle("Surface Water withdrawals for Golf Course")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GC_SW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+GC_GW_2011_2021_plot <- trend_plot(dat=basin_GC_summary_2011_2021 , x_col="year", y_col="GW")+
+  geom_bar(stat = "identity", fill = "springgreen3", width = 50)+
+  ylab("GW Withdrawals (MGD)")+
+  ggtitle("Groundwater withdrawals for Golf Course")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "GC_GW_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+#Aquaculture, no GW withdrawals
+basin_AQ_summary_2011_2021  <- wu_monit_2000_2021 %>%
+  dplyr::filter(CategoryCode=="AQ",Spatial_basin == "Pee Dee",year %in% (2011:2021)) %>%
+  dplyr::select(year,Total_MGD) %>%
+  dplyr::mutate(year = lubridate::ymd(year, truncated = 2L)) %>%
+  dplyr::rename(Total=`Total_MGD`)
+
+
+AQ_total_2011_2021_plot <- trend_plot(dat=basin_AQ_summary_2011_2021 , x_col="year", y_col="Total")+
+  geom_bar(stat = "identity", fill = "steelblue3", width = 50)+
+  ylab("Surface Water Withdrawals (MGD)")+
+ggtitle("Surface Water withdrawals for Golf Course")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggsave(filename = file.path("D:/PeeDee_plots/2021", "AQ_total_2011_2021_plot.png"), width = 10, height = 4, dpi = 300, units = "in", device = 'png')
+
+
+#Tables
+# WU by source and categories, excluding PH
+library(openxlsx)
+# D>>scwaterwithdrawaldata>>vignettes
+PeeDee <- createWorkbook()
+addWorksheet(PeeDee, "basinwide_wu_no_ph")
+addWorksheet(PeeDee, "basinwide_wu_no_power")
+addWorksheet(PeeDee, "PeeDee_wu_source_cat_no_ph")
+addWorksheet(PeeDee, "PeeDee_wu_source_cat_no_power")
+addWorksheet(PeeDee, "Total_WU_2011_2021_noPH")
+addWorksheet(PeeDee, "Total_WU_2011_2021_no_power")
+addWorksheet(PeeDee, "TH_2011_2021")
+addWorksheet(PeeDee, "WS_2011_2021")
+addWorksheet(PeeDee, "IN_2011_2021")
+addWorksheet(PeeDee, "AG_2011_2021")
+addWorksheet(PeeDee, "GC_2011_2021")
+addWorksheet(PeeDee, "MI_2011_2021")
+addWorksheet(PeeDee, "AQ_2011_2021")
+writeData(PeeDee, 1, no_ph_basinwise_wu_source)
+writeData(PeeDee, 2, no_power_basinwise_wu_source)
+writeData(PeeDee, 3, no_PH_cat_summary2)
+writeData(PeeDee, 4, no_power_cat_summary2)
+writeData(PeeDee, 5, PeeDee_total_2011_2021_noPH)
+writeData(PeeDee, 6, basin_total_wu_no_power_summary_2011_2021)
+writeData(PeeDee, 7, basin_TH_summary_2011_2021)
+writeData(PeeDee, 8, basin_WS_summary_2011_2021)
+writeData(PeeDee, 9, basin_IN_summary_2011_2021)
+writeData(PeeDee, 10, basin_Ag_summary_2011_2021)
+writeData(PeeDee, 11, basin_GC_summary_2011_2021)
+writeData(PeeDee, 12, basin_MI_summary_2011_2021)
+writeData(PeeDee, 13, basin_AQ_summary_2011_2021)
+saveWorkbook(PeeDee, file = "PeeDee.xlsx", overwrite = TRUE)
+
+```
+
+```{r top-withdrawers-table, echo=FALSE, eval = FALSE}
+
+top_withdrawers <- top_water_withdrawers(water_use_data = wu_monit_2000_2021, req_year = y, basin = basin,category_to_exclude = "Hydro Power", source = "S") %>%
+   dplyr::group_by(CategoryCode) %>% 
+   dplyr::arrange(desc(Total_MGD)) 
+
+kableExtra::kbl(top_withdrawers,
+              caption = '\\textbf{Table 17.} Water withdrawals (MGD) in the Pee Dee basin arranged in descending order', col.names = c("UserID operator", "Category","UserID" , "Withdrawals (MGD)")) %>%
+  kableExtra::column_spec(1:4, width ="5 cm") %>%
+  kableExtra::column_spec(4,digits = 1,format.args = list(big.mark = ",", scientific = FALSE), booktabs= T, linesep = "") %>%
+  # kableExtra::row_spec(5, hline_after = TRUE) %>%
+  kableExtra::kable_styling(latex_options = ("hold_position"))
+
+
+``` 
+
+```{r Catawba, eval=FALSE}
+Catawba_basin <- sf::st_read("D:/scwaterwithdrawaldata/data_DHEC/GIS_data/SC_Major_River_Basins.shp") %>%
+select(Basin) %>% dplyr::filter(Basin =="Catawba")
+
+Catawba_basin_map <- ggplot2::ggplot()+
+  geom_sf() %>%
+  geom_point(data= Catawba, aes(x = long, y = lat), size = 4, 
+        shape = 23, fill = "red")+
+  geom_sf(data=Catawba_basin,aes(fill=Basin), color = "black")+
+  
+  # scale_fill_manual(values=c("Broad" = "goldenrod2","Catawba" = "sandybrown","Edisto" = "skyblue","PeeDee"= "palegreen","Salkehatchie" = "lightslateblue", "Saluda" = "bisque1","Santee" = "darkorange","Savannah" = "lightpink2")) +
+   geom_sf(data=Catawba_maj_lakes, color="dodgerblue", fill="dodgerblue")+
+   # geom_sf(data=maj_rivers_import, color="dodgerblue", fill="dodgerblue")+
+   #geom_text(data = counties_import, aes(X,Y,label = COUNTY), size = 0.5)+
+  theme(
+    panel.background = element_blank(),
+    plot.background = element_rect(fill = "white", color = "black"),
+    panel.grid.major = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+  #ggtitle("Major basins in South Carolina, highlighting the Pee Dee basin")
+Catawba_basin_map
+
+Catawba_basin
+
+Catawba <- wu_monit_2000_2021 %>%
+  dplyr::filter(Spatial_basin=="Catawba", year==2021)
+
+
+```
+
+
+```{r rough work, eval=FALSE}
+IN_Peedee_2020_21 <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="IN") %>%
+dplyr::filter(year==2020:2021) %>%
+dplyr::arrange(desc(sourceid))
+
+GW_wells_2020 <- sf::st_read("D:/scwaterwithdrawaldata/data_DHEC/GIS_data/GW_active_wells_Oct_2020/DHEC_GW_ActiveWells.shp") %>%
+  dplyr::mutate(Category = substr(userid,3,4))
+
+sf::st_write(GW_wells_2020, "GW_wells_2020.shp")
+
+rgdal::writeOGR(GW_wells_2020, dsn = "D:/scwaterwithdrawaldata/data_DHEC/GIS_data/GW_active_wells_Oct_2020", layer = "DHEC_GW_ActiveWells",
+         driver = "ESRI Shapefile")
+
+GC_Peedee_2020_21 <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="GC") %>%
+dplyr::filter(year>2019) %>%
+dplyr::arrange(desc(sourceid))
+
+GC_PD_2020 <- GC_Peedee_2020_21 %>%
+  dplyr::filter(year==2020) %>%
+  dplyr::select(sourceid,year,total) %>%
+  dplyr::rename(total_2020=total)
+
+GC_PD_2021 <- GC_Peedee_2020_21 %>%
+  dplyr::filter(year==2021)%>%
+  dplyr::select(sourceid,year,total) %>%
+    dplyr::rename(total_2021=total)
+
+chk_gc_20_21 <- GC_PD_2020 %>%
+  dplyr::left_join(GC_PD_2021, by="sourceid")
+
+# 2 sourceids in 2020 that are absent in 2021
+GC_2020_nin_2021 <- dplyr::anti_join(GC_PD_2020,GC_PD_2021, by='sourceid')
+
+# 0 sourceids in 2020 that are absent in 2021
+GC_2021_nin_2020 <- dplyr::anti_join(GC_PD_2021,GC_PD_2020, by='sourceid')
+
+
+# last 5 years comparison
+
+# 1.	26GC051G03: The well had 252.6 MG in 2021, while the highest withdrawal in the last five years was in 2019 (15.355 MG) - Courtney will get back on this after contacting the facility.
+
+# 2.	43GC003G08: Well has recorded withdrawals only for 2020 and 2021. In 2020, withdrawal was only 0.147 MG and went up to 65.8 MG in 2021.- Courtney mentioned the facility was not completely
+# operational in 2020 but started withdrawing in 2021.
+
+
+GC_Peedee_2017_21 <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="GC") %>%
+dplyr::filter(year>2016) %>%
+dplyr::select(sourceid,year,total)%>%
+tidyr::pivot_wider(names_from = year, values_from = total) 
+
+GC_Peedee_2017_21_GW <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="GC" & Water_SourceCode=="G") %>%
+dplyr::filter(year>2016) %>%
+dplyr::select(sourceid,year,total)%>%
+tidyr::pivot_wider(names_from = year, values_from = total)
+
+GC_Peedee_2017_21_GW2 <- GC_Peedee_2017_21_GW %>% 
+  dplyr::mutate(
+  `2021` = dplyr::recode(`2021`, '252.6260' = 15.355,'65.8000'  =0.1470 ))
+  dplyr::recode(`2021`,  = ,  = )
+
+k <- colSums(GC_Peedee_2017_21_GW[,c("2017", "2018","2019","2020","2021")], na.rm = TRUE)
+
+# replace values for 26GC051G03 and 43GC003G08
+
+#Irrigation 
+
+# sourceids with higher withdrawals in 2021 than in the last 5 years.
+
+# 43IR085G01, 31IR049G01
+
+Ag_Peedee_2017_21 <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="IR") %>%
+dplyr::filter(year>2016) %>%
+dplyr::select(sourceid,year,total)%>%
+tidyr::pivot_wider(names_from = year, values_from = total)
+
+Ag_Peedee_2017_21_GW <- wu_monit_2000_2021 %>%
+dplyr::filter(Spatial_basin=="Pee Dee") %>%
+dplyr::filter(CategoryCode=="IR" & Water_SourceCode=="G") %>%
+dplyr::filter(year>2016) %>%
+dplyr::select(sourceid,year,total)%>%
+tidyr::pivot_wider(names_from = year, values_from = total) %>%
+dplyr::relocate(`2019`, .after=`2018`) %>%
+dplyr::relocate(`2021`, .after=`2020`)
+
+
+#GW
+
+gw_intakes <- wu_monit_2000_2021 %>%
+               dplyr::filter(
+                 Water_SourceCode == 'G' & year == 2021 & 
+                   Spatial_basin %in% c('Pee Dee', 'Atlantic-PeeDee') & status != 'I')
+
+# k <-dupes(gw_intakes,idCols="sourceid")
+
+GW_permit_2022 <- sf::st_read("D:/scwaterwithdrawaldata/data_DHEC/GIS_data/DHEC_Permit_wells_06_22/WUD_A_PermWells/WUD_A_PermWells.shp") %>%
+  sf::st_as_sf(coords= c("long", "lat"),
+                                crs= st_crs(SC_boundary_new), agr= "identity")
+
+
+GW_reg_wells_2022 <- sf::st_read("D:/scwaterwithdrawaldata/data_DHEC/GIS_data/DHEC_Reg_wells_06_22/WUD_A_RegWells/WUD_A_RegWells.shp")
+
+
+SC_major_river_basins_edited <- sf::st_read(dsn = "C:/Users/morep/Documents/R_package/scwaterwithdrawaldata/data_DHEC/GIS_data/SC_Major_River_Basins.shp") %>%
+  dplyr::select(c(-OBJECTID,-Document, -Archived_S)) %>% 
+  dplyr::rename('Spatial_basin' = 'Basin' ) %>%
+  st_transform(st_crs(GW_permit_2022))
+
+ggplot2::ggplot() +
+  ggplot2::geom_sf(data = SC_major_river_basins_edited) +
+  ggplot2::coord_sf()
+
+ggplot2::ggplot() + 
+     ggplot2::geom_sf(data = SC_major_river_basins_edited) +
+     ggplot2::geom_sf(data = GW_permit_2022) +
+     ggplot2::coord_sf()
+
+# joined_basins <- sf::st_join(ground_with_coord_sf, SC_basins) %>%
+#   dplyr::rename(Spatial_basin=Basin)
+
+GW_permit_2022_basins <- sf::st_join(GW_permit_2022, SC_major_river_basins_edited)
+GW_reg_wells_2022_basins <- sf::st_join(GW_reg_wells_2022, SC_major_river_basins_edited)
+
+mismatched_GW_permit_2022_basins <- GW_permit_2022_basins[!(is.na(GW_permit_2022_basins$basin)| GW_permit_2022_basins$basin==""),] %>% 
+  dplyr::mutate(basin_mismatch = basin == Spatial_basin) %>%
+  dplyr::filter(basin_mismatch== FALSE)
+
+GW_permit_2022_PD <- GW_permit_2022_basins %>%
+  dplyr::filter(Spatial_basin == "PeeDee")
+
+GW_reg_wells_2022_PD <- GW_reg_wells_2022_basins %>%
+ dplyr::filter(Spatial_basin == "PeeDee") 
+
+
+# Which active wells in wu_monit_2021 are absent from the recent GW permit shapefile?
+
+wu_monit21_PD <- wu_monit_2000_2021 %>% dplyr::filter(Spatial_basin == "Pee Dee" & year==2021 & Water_SourceCode=="G")
+
+GW_active_wells_2021_nin_GW_permit2022_PD <- dplyr::anti_join(wu_monit21_PD,GW_permit_2022_PD, by='sourceid')
+
+saveRDS(GW_active_wells_2021_nin_GW_permit2022_PD, file = "PD_activewells_nin_permit.rds")
+
+# Pee Dee active wells in wu_monit 2021 that were present in GW_Reg_wells shapefile of 2022. 
+kk <- dplyr::left_join(GW_reg_wells_2022_PD, wu_monit21_PD, by="sourceid")
+
+# Pee Dee active wells in wu_monit 2021 that were absent from both the GW_Reg_wells 
+# and GW_permit_2022 shapefile of 2022.
+
+jj <- dplyr::anti_join(GW_active_wells_2021_nin_GW_permit2022_PD,kk, by='sourceid')
+
+```
+
+```{r save-2021-data, eval=FALSE}
+PD_2021_users_no_PH <- wu_monit_2000_2021 %>% 
+  dplyr::filter(Spatial_basin=="Pee Dee", year==2021, CategoryCode!="PH")
+
+write_xlsx(PD_2021_users_no_PH, "D:\\scwaterwithdrawaldata\\PD_2021_users_no_PH.xlsx")
+```
+
+```{r del, eval=FALSE}
+SW_Withdrawals<- sf::st_read("D:\\scwaterwithdrawaldata/data_DHEC/GIS_data/SW_Withdrawals_Registrations_May_2022/SW_Withdrawals.shp") %>%
+  dplyr::mutate(Type=substr(APP_PERMIT,3,4)) 
+
+sf::st_write(SW_Withdrawals, "SW_Permits_2021.shp")
+```
