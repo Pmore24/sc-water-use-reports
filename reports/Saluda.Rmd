@@ -58,15 +58,16 @@ trend_year2 <- 2002:2022
 
 
 ```{r import-data, include=FALSE}
-load(here::here("data", "wu.rda"))
-load(here::here("data", "intakes.rda"))
+# load(here::here("data", "wu.rda"))
+# load(here::here("data", "intakes.rda"))
 
-wu_monit_dat <- wu$WU_monit %>%
+wu_monit_dat <- scwaterwithdrawal::wu$WU_monit %>%
   dplyr::filter(year > 2001)
 
 # load intakes.rda 
-intakes_edit <- intakes %>%
+intakes_edit <- scwaterwithdrawal::intakes %>%
   sf::st_join(scsf::planning_basins)
+
 
 #36IR009G05 monthly wu (MG) is 0.2 not 20
 #36IR009G06 monthly wu (MG) is 0.25 not 25

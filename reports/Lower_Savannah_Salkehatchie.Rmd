@@ -58,15 +58,16 @@ trend_year2 <- 2002:2022
 
 
 ```{r import-data, include=FALSE}
-load(here("data", "wu.rda"))
-load(here("data", "intakes.rda"))
+# load(here("data", "wu.rda"))
+# load(here("data", "intakes.rda"))
 
-wu_monit_dat <- wu$WU_monit %>%
+wu_monit_dat <- scwaterwithdrawal::wu$WU_monit %>%
   dplyr::filter(year > 2001)
 
 # load intakes.rda 
-intakes_edit <- intakes %>%
+intakes_edit <- scwaterwithdrawal::intakes %>%
   sf::st_join(scsf::planning_basins)
+
 
 wu_monit_dat2 <- wu_monit_dat %>%
   dplyr::left_join(intakes_edit, by='sourceid') %>%
