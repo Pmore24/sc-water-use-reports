@@ -313,7 +313,7 @@ grid::grid.rect(gp = gpar(col = "black", fill = NA))
 ```{r no_power_basinwise_wu_source, echo=FALSE}
 #options(scipen=999) # remove scientific notation
 no_power_basinwise_wu_source <- wu_monit_dat2 %>% 
-  dplyr::filter(year== y & category %nin% c("Hydro Power", "Thermo Power", "Nuclear Power")) %>%
+  dplyr::filter(year== y & category %nin% c("Hydro Power", "Thermal Power", "Nuclear Power")) %>%
   dplyr::group_by(basin,water_source_code) %>%
   dplyr::summarise(total_mgd = sum(total_mgd)) %>%
   tidyr::spread(water_source_code, total_mgd) %>%
